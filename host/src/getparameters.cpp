@@ -200,6 +200,7 @@ int parse_dpf(
 								if(check_path && !has_absolute_path(argstr)){
 									len = strlen(argstr);
 									mypars->ligandfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+									mypars->fldfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 									strncat(strncpy(mypars->ligandfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 								} else mypars->ligandfile = strdup(argstr);
 							}
@@ -212,6 +213,7 @@ int parse_dpf(
 							if(check_path && !has_absolute_path(argstr)){
 								len = strlen(argstr);
 								mypars->flexresfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+								mypars->flexresfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 								strncat(strncpy(mypars->flexresfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 							} else mypars->flexresfile = strdup(argstr);
 						}
@@ -224,6 +226,7 @@ int parse_dpf(
 							if(check_path && !has_absolute_path(argstr)){
 								len = strlen(argstr);
 								mypars->fldfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+								mypars->fldfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 								strncat(strncpy(mypars->fldfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 							} else mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
 							// Filling mygrid according to the specified fld file
