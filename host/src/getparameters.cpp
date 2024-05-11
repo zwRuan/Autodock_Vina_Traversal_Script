@@ -200,7 +200,7 @@ int parse_dpf(
 								if(check_path && !has_absolute_path(argstr)){
 									len = strlen(argstr);
 									mypars->ligandfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
-									mypars->fldfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
+									mypars->ligandfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 									strncat(strncpy(mypars->ligandfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 								} else mypars->ligandfile = strdup(argstr);
 							}
