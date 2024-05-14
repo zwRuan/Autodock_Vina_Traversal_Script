@@ -759,8 +759,7 @@ int initial_commandpars(
 		}
 	}
 	if(xml_files.size()>0){ // use filelist parameter list in case multiple xml files are converted
-		mypars->xml_files = xml_files.size();
-		if(mypars->xml_files>100){ // output progress bar
+		if(xml_files.size()>100){ // output progress bar
 			printf("Preparing ");
 			if(mypars->output_contact_analysis)
 				printf("analysis\n");
@@ -771,9 +770,9 @@ int initial_commandpars(
 		}
 		Dockpars orig_pars;
 		if(!specified_dpf) orig_pars = *mypars;
-		for(unsigned int i=0; i<mypars->xml_files; i++){
-			if(mypars->xml_files>100){
-				if((50*(i+1)) % mypars->xml_files < 50){
+		for(unsigned int i=0; i<xml_files.size(); i++){
+			if(xml_files.size()>100){
+				if((50*(i+1)) % xml_files.size() < 50){
 					printf("*"); fflush(stdout);
 				}
 			}
@@ -783,9 +782,9 @@ int initial_commandpars(
 				*mypars = orig_pars;
 				mypars->dpffile=NULL;
 			}
-			mypars->fldfile=NULL;
-			mypars->ligandfile=NULL;
-			mypars->flexresfile=NULL;
+			mypars->fldfile = NULL;
+			mypars->ligandfile = NULL;
+			mypars->flexresfile = NULL;
 			mypars->free_roaming_ligand = false;
 			// load_xml is the xml file from which the other parameters will be set
 			mypars->load_xml = strdup(xml_files[i].c_str());
@@ -830,8 +829,8 @@ int initial_commandpars(
 			if(mypars->free_roaming_ligand) filelist.ligand_files.push_back(mypars->ligandfile);
 			filelist.mypars.push_back(*mypars);
 		}
-		if(mypars->xml_files>100) printf("\n\n");
-		filelist.nfiles = mypars->xml_files;
+		if(xml_files.size()>100) printf("\n\n");
+		filelist.nfiles = xml_files.size();
 	} else{
 #ifdef TOOLMODE
 		printf("Error: No xml files specified.\n\n");
