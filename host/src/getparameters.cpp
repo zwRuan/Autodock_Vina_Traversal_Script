@@ -2565,7 +2565,7 @@ void gen_initpop_and_reflig(
 		int nrot;
 		std::vector<float> genome = read_xml_genomes(mypars->load_xml, mygrid->spacing, nrot);
 		if(nrot!=myligand->num_of_rotbonds){
-			printf("Error: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand->num_of_rotbonds);
+			printf("Error: XML <%s> genome contains %d rotatable bonds but current ligand has %d.\n",mypars->load_xml,nrot,myligand->num_of_rotbonds);
 			exit(2);
 		}
 		nr_genomes_loaded = std::min((unsigned long)(genome.size()/GENOTYPE_LENGTH_IN_GLOBMEM), mypars->num_of_runs);
