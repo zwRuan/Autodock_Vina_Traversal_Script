@@ -1284,6 +1284,11 @@ parameters argc and argv:
 	memcopyBufferObjectFromDevice(tData.command_queue,sim_state.cpu_evals_of_runs.data(),mem_gpu_evals_of_runs,size_evals_of_runs);
 #endif
 #endif // USE_OPENCL
+#ifdef USE_CUDA
+#if defined (MAPPED_COPY)
+	int* map_cpu_evals_of_runs = tData.pMem_gpu_evals_of_runs;
+#endif
+#endif
 	// -------- Replacing with memory maps! ------------
 	#if 0
 	generation_cnt = 1;
