@@ -733,15 +733,13 @@ int initial_commandpars(
 			mypars->nr_cluster_poses = number;
 			i++;
 		}
-#ifdef TOOLMODE
-		read_more_xml_files = true;
-#endif
 	}
 	
 	bool specified_dpf = (mypars->dpffile!=NULL);
 	if(specified_dpf){
 		if((error=parse_dpf(mypars,mygrid,filelist))) return error;
 	}
+	mypars->xml_files = xml_files.size();
 	if(xml_files.size() == 1){
 		if(is_dirname(xml_files[0].c_str())){
 			struct stat dir_stat;
@@ -768,6 +766,11 @@ int initial_commandpars(
 			printf("0%%      20%%       40%%       60%%       80%%     100%%\n");
 			printf("---------+---------+---------+---------+---------+\n");
 		}
+		// Need to setup file names from command line in case they weren't set with a dpf
+		if (get_filenames_and_ADcoeffs(argc, argv, mypars, filelist.used, false) != 0){
+			return 1;
+		}
+		char* orig_fld = mypars->fldfile;
 		Dockpars orig_pars;
 		if(!specified_dpf) orig_pars = *mypars;
 		for(unsigned int i=0; i<xml_files.size(); i++){
@@ -777,12 +780,12 @@ int initial_commandpars(
 				}
 			}
 			// make sure to NOT free the previous ones as otherwise the strings of other mypars will be gone too ...
-			char* prev_fld_file=mypars->fldfile;
 			if(!specified_dpf){
 				*mypars = orig_pars;
 				mypars->dpffile=NULL;
 			}
-			mypars->fldfile = NULL;
+
+			if(orig_fld) mypars->fldfile = strdup(orig_fld);
 			mypars->ligandfile = NULL;
 			mypars->flexresfile = NULL;
 			mypars->free_roaming_ligand = false;
@@ -1176,15 +1179,16 @@ int get_filenames_and_ADcoeffs(
 	int ffile_given, lfile_given, flex_given;
 	long tempint;
 	
-	ffile_given = (mypars->fldfile!=NULL);
-	lfile_given = (mypars->ligandfile!=NULL);
-	flex_given = (mypars->flexresfile!=NULL);
+	ffile_given = (mypars->fldfile     != NULL);
+	lfile_given = (mypars->ligandfile  != NULL);
+	flex_given  = (mypars->flexresfile != NULL);
 	
 	for (i=1; i<(*argc)-1; i+=2)
 	{
+#ifndef TOOLMODE
 		if (argcmp("filelist", argv[i], 'B'))
 			i+=mypars->filelist_files-1; // skip ahead in case there are multiple entries here
-		
+#endif
 		if (argcmp("xml2dlg", argv[i], 'X'))
 			i+=mypars->xml_files-1; // skip ahead in case there are multiple entries here
 		
@@ -1195,7 +1199,7 @@ int get_filenames_and_ADcoeffs(
 				ffile_given = 1;
 				mypars->fldfile = strdup(argv[i+1]);
 			}
-
+#ifndef TOOLMODE
 			// Argument: ligand pdbqt file name
 			if (argcmp("lfile", argv[i], 'L'))
 			{
@@ -1203,15 +1207,16 @@ int get_filenames_and_ADcoeffs(
 				mypars->ligandfile = strdup(argv[i+1]);
 				mypars->free_roaming_ligand = true;
 			}
+#endif
 		}
-
+#ifndef TOOLMODE
 		// Argument: flexible residue pdbqt file name
 		if (argcmp("flexres", argv[i], 'F'))
 		{
 			flex_given = 1;
 			mypars->flexresfile = strdup(argv[i+1]);
 		}
-
+#endif
 		// Argument: unbound model to be used.
 		// 0 means the bound, 1 means the extended, 2 means the compact ...
 		// model's free energy coefficients will be used during docking.
@@ -1237,19 +1242,18 @@ int get_filenames_and_ADcoeffs(
 			}
 		}
 	}
-
+#ifndef TOOLMODE
 	if (ffile_given == 0 && !multiple_files && missing_error)
 	{
 		printf("Error: Grid fld file was not defined. Use --ffile (-M) argument.\n");
 		print_options(argv[0]);
 	}
-
 	if ((lfile_given == 0) && (flex_given == 0) && !multiple_files && missing_error)
 	{
 		printf("Error: Ligand or flexres pdbqt file was not defined. Use --lfile (-L) or --flexres (-F) argument for regular or covalent ligands, respectively.\n");
 		print_options(argv[0]);
 	}
-
+#endif
 	return 0;
 }
 
@@ -1263,10 +1267,14 @@ void print_options(
 #ifndef TOOLMODE
 	printf("\nINPUT\n");
 	printf("--lfile             -L | Ligand pdbqt file                                     | no default\n");
+#endif
 	printf("--ffile             -M | Grid map files descriptor fld file                    | no default\n");
+#ifndef TOOLMODE
 	printf("--flexres           -F | Flexible residue pdbqt file                           | no default\n");
 	printf("--filelist          -B | Batch file                                            | no default\n");
+#endif
 	printf("--import_dpf        -I | Import AD4-type dpf input file (only partial support) | no default\n");
+#ifndef TOOLMODE
 	printf("--xraylfile         -R | reference ligand file for RMSD analysis               | ligand file\n");
 	printf("\nCONVERSION\n");
 	printf("--xml2dlg           -X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default\n");
@@ -2396,7 +2404,7 @@ void read_xml_filenames(
 	}
 	if(!grid_found || !lig_or_flex_found) error |= 16;
 	if(error){
-		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
+		printf("\nError: XML file %s is not in AutoDock-GPU format (error #%d in line %lu).\n",xml_filename,error,line_nr);
 		exit(error);
 	}
 }
@@ -2530,7 +2538,7 @@ std::vector<float> read_xml_genomes(
 		}
 	}
 	if(error){
-		printf("Error: XML file is not in AutoDock-GPU format (error #%d in line %lu).\n",error,line_nr);
+		printf("\nError: XML file %s is not in AutoDock-GPU format (error #%d in line %lu).\n",xml_filename,error,line_nr);
 		exit(error);
 	}
 	return result;
