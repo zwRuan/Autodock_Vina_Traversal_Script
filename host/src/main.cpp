@@ -21,7 +21,7 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 */
-
+#define _HAS_STD_BYTE 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,8 +83,15 @@ inline void start_timer(T& time_start)
 #endif
 }
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 int main(int argc, char* argv[])
 {
+#ifdef _WIN32
+	SetConsoleOutputCP(CP_UTF8);
+#endif
 	// Print version info
 	printf("AutoDock-GPU version: %s\n\n", VERSION);
 	// Print help screen if no parameters were specified
