@@ -114,6 +114,7 @@
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalIncludeDirectories>windows\include;wrapcl\inc;host\inc;common;device</AdditionalIncludeDirectories>
       <AdditionalOptions>/openmp:llvm %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -133,6 +134,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalOptions>/openmp:llvm %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
