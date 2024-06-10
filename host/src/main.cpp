@@ -558,6 +558,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	if (n_errors==0) printf("\nAll jobs ran without errors.\n");
+	fflush(stdout);
 
 	return 0;
 }

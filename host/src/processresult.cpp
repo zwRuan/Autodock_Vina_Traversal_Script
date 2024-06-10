@@ -1142,6 +1142,7 @@ void generate_output(
 		// Add execution and idle time information
 		fprintf(fp, "\nRun time %.3f sec", exec_time);
 		fprintf(fp, "\nIdle time %.3f sec\n", idle_time);
+		fflush(fp);
 		if(!mypars->dlg2stdout){
 			fclose(fp);
 		}
@@ -1304,6 +1305,7 @@ void generate_output(
 			fprintf(fp_xml, "\t</result>\n");
 		}
 		fprintf(fp_xml, "</autodock_gpu>\n");
+		fflush(fp_xml);
 		fclose(fp_xml);
 		free(xml_file_name);
 	}
