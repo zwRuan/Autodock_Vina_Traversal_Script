@@ -541,24 +541,24 @@ void ligand_calc_output(
                               bool          output_energy
                        )
 {
-	Liganddata calc_lig = *ligand;
+	Liganddata* calc_lig = new Liganddata(*ligand);
 	Ligandresult calc;
 	double orig_vec[3];
 	for (unsigned int i=0; i<3; i++)
 		orig_vec [i] = -mygrid->origo_real_xyz [i];
-	move_ligand(&calc_lig, orig_vec, orig_vec); //moving it according to grid location
-	scale_ligand(&calc_lig, 1.0/mygrid->spacing);
-	calc.interE = calc_interE_f(mygrid, &calc_lig, 0.0005, 0, calc.intraflexE, &(calc.interE_elec), calc.peratom_vdw, calc.peratom_elec); // calculate intermolecular and per atom energies
+	move_ligand(calc_lig, orig_vec, orig_vec); //moving it according to grid location
+	scale_ligand(calc_lig, 1.0/mygrid->spacing);
+	calc.interE = calc_interE_f(mygrid, calc_lig, 0.0005, 0, calc.intraflexE, &(calc.interE_elec), calc.peratom_vdw, calc.peratom_elec); // calculate intermolecular and per atom energies
 	if (output_analysis){
-		calc.analysis = analyze_ligand_receptor(mygrid, &calc_lig, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, 0, mypars->H_cutoff, mypars->V_cutoff);
+		calc.analysis = analyze_ligand_receptor(mygrid, calc_lig, mypars->receptor_atoms.data(), mypars->receptor_map, mypars->receptor_map_list, 0.0005, 0, mypars->H_cutoff, mypars->V_cutoff);
 	}
-	scale_ligand(&calc_lig, mygrid->spacing);
+	scale_ligand(calc_lig, mygrid->spacing);
 	// the interaction between flex res and ligand is stored in accurate_interflexE
 	if(output_analysis)
-		calc.intraE = calc_intraE_f(&calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE, &(calc.analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
+		calc.intraE = calc_intraE_f(calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE, &(calc.analysis), mypars->receptor_atoms.data() + mypars->nr_receptor_atoms, mypars->R_cutoff, mypars->H_cutoff, mypars->V_cutoff);
 	else
-		calc.intraE = calc_intraE_f(&calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE);
-	move_ligand(&calc_lig, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
+		calc.intraE = calc_intraE_f(calc_lig, 8, mypars->smooth, 0, mypars->elec_min_distance, tables, 0, calc.interflexE);
+	move_ligand(calc_lig, mygrid->origo_real_xyz, mygrid->origo_real_xyz); //moving it according to grid location
 	if (output_analysis){
 		// sort by analysis type
 		for(unsigned int j=0; j<calc.analysis.size(); j++)
@@ -615,7 +615,7 @@ void ligand_calc_output(
 		}
 	}
 	if(output_energy){
-		double torsional_energy = mypars->coeffs.AD4_coeff_tors * calc_lig.true_ligand_rotbonds;
+		double torsional_energy = mypars->coeffs.AD4_coeff_tors * calc_lig->true_ligand_rotbonds;
 		double inter = calc.interE + calc.interflexE;
 		double intra = calc.intraE + calc.intraflexE;
 		double unbound = 0.0;
@@ -650,6 +650,7 @@ void ligand_calc_output(
 		fprintf(fp, " kcal/mol\n");
 		fprintf(fp, "%s\n", prefix);
 	}
+	delete calc_lig;
 }
 
 void generate_output(
@@ -803,7 +804,7 @@ void generate_output(
 			}
 		}
 	}
-	
+
 	// GENERATING DLG FILE
 	if(mypars->output_dlg){
 		if(!mypars->dlg2stdout){
@@ -812,7 +813,7 @@ void generate_output(
 			strcat(report_file_name, ".dlg");
 			fp = fopen(report_file_name, "w");
 			if(fp==NULL){
-				printf("Error: Cannot create dlg output file %s: %s\n",report_file_name,strerror(errno));
+				printf("Error: Cannot create dlg output file %s: %s\n", report_file_name, strerror(errno)); fflush(stdout);
 				exit(7);
 			}
 			free(report_file_name);
@@ -874,6 +875,7 @@ void generate_output(
 			}
 			fprintf(fp, "\n\n");
 		}
+
 		// writing input flexres pdbqt file if specified
 		if (mypars->flexresfile) {
 			if ( strlen(mypars->flexresfile)>0 ) {
@@ -1346,7 +1348,6 @@ void process_result(
 		              best_energy_of_all,
 		              &(cpu_result_ligands [run_cnt]));
 	}
-
 	// Do analyses and generate dlg or xml output files
 	generate_output(cpu_result_ligands.data(),
 	                mypars->num_of_runs,

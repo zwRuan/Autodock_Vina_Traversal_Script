@@ -500,6 +500,7 @@ int main(int argc, char* argv[])
 				if(mypars.xrayligandfile) free(mypars.xrayligandfile);
 				if(mypars.resname) free(mypars.resname);
 			}
+			fflush(stdout);
 		} // end of for loop
 #ifdef USE_PIPELINE
 		#pragma omp single
