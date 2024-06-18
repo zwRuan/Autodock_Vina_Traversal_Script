@@ -2016,8 +2016,8 @@ int get_commandpars(
 				mypars->gen_finalpop = true;
 		}
 
-		// Argument: generate best.pdbqt
-		// If the value is zero, best.pdbqt file containing the coordinates of the best result found during all of the runs won't be generated, otherwise it will
+		// Argument: generate {resname}-best.pdbqt
+		// If the value is zero, {resname}-best.pdbqt files containing the coordinates of the best result found for each ligand during all of the runs won't be generated, otherwise they will
 		if (argcmp("gbest", argv [i]))
 		{
 			arg_recognized = 1;
