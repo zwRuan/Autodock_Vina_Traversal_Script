@@ -495,12 +495,17 @@ void make_resfiles(
 			}
 		}
 
-		// generating best.pdbqt (based on scoring function)
+		// generating {resname}-best.pdbqt (based on scoring function)
 		if (i == 0)
 			if (best_energy_of_all > accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE)
 			{
+				const char* suffix = "-best.pdbqt";
+				int len = strlen(mypars->resname) + strlen(suffix) + 1;
+				char* best_filename = (char*)malloc(len*sizeof(char));
+				strcpy(best_filename, mypars->resname);
+				strcat(best_filename, suffix);
 				best_energy_of_all = accurate_interE + accurate_interflexE + accurate_intraE + accurate_intraflexE;
-				if (mypars->gen_best) gen_new_pdbfile("best.pdbqt", ligand_ref);
+				if (mypars->gen_best) gen_new_pdbfile(best_filename, ligand_ref);
 			}
 
 		if (i < mypars->gen_pdbs) //if it is necessary, making new pdbqts for best entities
