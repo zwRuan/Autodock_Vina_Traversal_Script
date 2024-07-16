@@ -35,7 +35,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "processligand.h"
 #include "getparameters.h"
 
-// This struct is passed to the GPU global functions (OpenCL kernels) as input.
+// This struct is passed to the GPU global functions (OpenCL & Cuda kernels) as input.
 // Its members are parameters related to the ligand, the grid
 // and the genetic algorithm, or they are pointers of GPU (ADM FPGA) memory areas
 // used for storing different data such as the current
@@ -43,45 +43,40 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // the evaluation counters and the random number generator states.
 typedef struct
 {
-	int           num_of_atoms;
-	int           true_ligand_atoms;
-	int           num_of_atypes;
-	int           num_of_map_atypes;
-	int           num_of_intraE_contributors;
-	int           gridsize_x;
-	int           gridsize_y;
-	int           gridsize_z;
-	float         grid_spacing;
-	float*        fgrids;
-	int           rotbondlist_length;
-	float         coeff_elec;
-	float         elec_min_distance;
-	float         coeff_desolv;
-	float*        conformations_current;
-	float*        energies_current;
-	float*        conformations_next;
-	float*        energies_next;
-	int*          evals_of_new_entities;
-	unsigned int* prng_states;
-	int           pop_size;
-	int           num_of_genes;
-	float         tournament_rate;
-	float         crossover_rate;
-	float         mutation_rate;
-	float         abs_max_dmov;
-	float         abs_max_dang;
-	float         lsearch_rate;
-	float         smooth;
-	unsigned int  num_of_lsentities;
-	float         rho_lower_bound;
-	float         base_dmov_mul_sqrt3;
-	float         base_dang_mul_sqrt3;
-	unsigned int  cons_limit;
-	unsigned int  max_num_of_iters;
-	float         qasp;
-	float         adam_beta1;
-	float         adam_beta2;
-	float         adam_epsilon;
+	int             num_of_atoms;
+	int             true_ligand_atoms;
+	int             num_of_atypes;
+	int             num_of_map_atypes;
+	int             num_of_intraE_contributors;
+	int             gridsize_x;
+	int             gridsize_y;
+	int             gridsize_z;
+	int             gridsize_x_times_y;
+	int             gridsize_x_times_y_times_z;
+	float           grid_spacing;
+	int             rotbondlist_length;
+	float           coeff_elec;
+	float           elec_min_distance;
+	float           coeff_desolv;
+	int             pop_size;
+	int             num_of_genes;
+	float           tournament_rate;
+	float           crossover_rate;
+	float           mutation_rate;
+	float           abs_max_dmov;
+	float           abs_max_dang;
+	float           lsearch_rate;
+	float           smooth;
+	unsigned int    num_of_lsentities;
+	float           rho_lower_bound;
+	float           base_dmov_mul_sqrt3;
+	float           base_dang_mul_sqrt3;
+	unsigned int    cons_limit;
+	unsigned int    max_num_of_iters;
+	float           qasp;
+	float           adam_beta1;
+	float           adam_beta2;
+	float           adam_epsilon;
 } Dockparameters;
 
 typedef struct

@@ -200,6 +200,7 @@ int parse_dpf(
 								if(check_path && !has_absolute_path(argstr)){
 									len = strlen(argstr);
 									mypars->ligandfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+									mypars->ligandfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 									strncat(strncpy(mypars->ligandfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 								} else mypars->ligandfile = strdup(argstr);
 							}
@@ -212,6 +213,7 @@ int parse_dpf(
 							if(check_path && !has_absolute_path(argstr)){
 								len = strlen(argstr);
 								mypars->flexresfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+								mypars->flexresfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 								strncat(strncpy(mypars->flexresfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 							} else mypars->flexresfile = strdup(argstr);
 						}
@@ -224,6 +226,7 @@ int parse_dpf(
 							if(check_path && !has_absolute_path(argstr)){
 								len = strlen(argstr);
 								mypars->fldfile = (char*)malloc((dpf_path.size()+len+1)*sizeof(char));
+								mypars->fldfile[dpf_path.size()] = '\0'; // make sure first part to copy is terminated
 								strncat(strncpy(mypars->fldfile, dpf_path.c_str(), dpf_path.size()), argstr, len);
 							} else mypars->fldfile = strdup(argstr); // this allows using the dpf to set up all parameters but the ligand
 							// Filling mygrid according to the specified fld file
@@ -781,9 +784,10 @@ int initial_commandpars(
 				*mypars = orig_pars;
 				mypars->dpffile=NULL;
 			}
+
 			if(orig_fld) mypars->fldfile = strdup(orig_fld);
-			mypars->ligandfile=NULL;
-			mypars->flexresfile=NULL;
+			mypars->ligandfile = NULL;
+			mypars->flexresfile = NULL;
 			mypars->free_roaming_ligand = false;
 			// load_xml is the xml file from which the other parameters will be set
 			mypars->load_xml = strdup(xml_files[i].c_str());
@@ -2568,10 +2572,10 @@ void gen_initpop_and_reflig(
 		int nrot;
 		std::vector<float> genome = read_xml_genomes(mypars->load_xml, mygrid->spacing, nrot);
 		if(nrot!=myligand->num_of_rotbonds){
-			printf("Error: XML genome contains %d rotatable bonds but current ligand has %d.\n",nrot,myligand->num_of_rotbonds);
+			printf("Error: XML <%s> genome contains %d rotatable bonds but current ligand has %d.\n",mypars->load_xml,nrot,myligand->num_of_rotbonds);
 			exit(2);
 		}
-		nr_genomes_loaded = std::min(genome.size()/GENOTYPE_LENGTH_IN_GLOBMEM, mypars->num_of_runs);
+		nr_genomes_loaded = std::min((unsigned long)(genome.size()/GENOTYPE_LENGTH_IN_GLOBMEM), mypars->num_of_runs);
 		if(nr_genomes_loaded < mypars->num_of_runs){
 			printf("Note: XML contains %d genomes but %lu runs are requested, randomizing other runs.\n",nr_genomes_loaded, mypars->num_of_runs);
 		}

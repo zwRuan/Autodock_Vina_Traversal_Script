@@ -71,49 +71,11 @@ static const float MAXFORCE         = FLT_MAX / 100.0f; // Used to cap absurd gr
 	}
 #endif
 
-typedef struct
-{
-	int             num_of_atoms;
-	int             true_ligand_atoms;
-	int             num_of_atypes;
-	int             num_of_map_atypes;
-	int             num_of_intraE_contributors;
-	int             gridsize_x;
-	int             gridsize_y;
-	int             gridsize_z;
-	int             gridsize_x_times_y;
-	int             gridsize_x_times_y_times_z;
-	float           grid_spacing;
-	int             rotbondlist_length;
-	float           coeff_elec;
-	float           elec_min_distance;
-	float           coeff_desolv;
-	int             pop_size;
-	int             num_of_genes;
-	float           tournament_rate;
-	float           crossover_rate;
-	float           mutation_rate;
-	float           abs_max_dmov;
-	float           abs_max_dang;
-	float           lsearch_rate;
-	float           smooth;
-	unsigned int    num_of_lsentities;
-	float           rho_lower_bound;
-	float           base_dmov_mul_sqrt3;
-	float           base_dang_mul_sqrt3;
-	unsigned int    cons_limit;
-	unsigned int    max_num_of_iters;
-	float           qasp;
-	float           adam_beta1;
-	float           adam_beta2;
-	float           adam_epsilon;
-} GpuDockparameters;
-
 struct GpuData {
 	int                             devnum;
 	int                             devid;
 	int                             preallocated_gridsize;
-	GpuDockparameters               dockpars;
+	Dockparameters                  dockpars;
 	
 	// Consolidated constants and memory pointers to reduce kernel launch overhead
 	kernelconstant_interintra*      pKerconst_interintra;
