@@ -100,12 +100,6 @@ __device__ inline int64_t ullitolli(uint64_t u)
 // "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
 // https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
 
-/*
- * Half-precision support
- * https://docs.nvidia.com/cuda/cuda-math-api/group__CUDA__MATH____HALF__MISC.html
- */
-#include <cuda_fp16.h>
-
 	#ifdef USE_TCEC
 	/*
 	* WMMA Extension for single precision matmul using Tensor Cores
@@ -195,7 +189,7 @@ __device__ void fill_Q(float *Q_data) {
 		printf("\nQ_data");
 		for (uint i = 0; i < 16 * 16; i++) {
 			if ((i % 16) == 0) {printf("\n[Row %u]: ", i/16);}
-			printf(" %2.2f ", __half2float(Q_data[i]));
+			printf(" %2.2f ", Q_data[i]);
 		}
 		printf("\n");
     }
