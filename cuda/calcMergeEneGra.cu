@@ -651,24 +651,20 @@ __device__ void gpu_calc_energrad(
 
 	// 1. Convert data-to-be-reduced from float to half
 	// and place it in a shared memory array
-	#ifdef USE_TCEC
 	__shared__ __align__(256) float data_to_be_reduced[4*NUM_OF_THREADS_PER_BLOCK];
 	data_to_be_reduced[4*threadIdx.x] = torque_rot.x;
 	data_to_be_reduced[4*threadIdx.x + 1] = torque_rot.y;
 	data_to_be_reduced[4*threadIdx.x + 2] = torque_rot.z;
 	data_to_be_reduced[4*threadIdx.x + 3] = energy;
-	#endif
 
 	// 2. Perform reduction via tensor units
 	reduce_via_tensor_units(data_to_be_reduced);
 
 	// 3. Retrieve results from shared memory
-	#ifdef USE_TCEC
 	torque_rot.x = data_to_be_reduced[0];
 	torque_rot.y = data_to_be_reduced[1];
 	torque_rot.z = data_to_be_reduced[2];
 	energy = data_to_be_reduced[3];
-	#endif
 
 	/* End: Reduction using tensor units */
 #else
@@ -699,22 +695,17 @@ __device__ void gpu_calc_energrad(
 
 	// 1. Convert data-to-be-reduced from float to half
 	// and place it in a shared memory array
-
-	#ifdef USE_TCEC
 	data_to_be_reduced[4*threadIdx.x] = gx;
 	data_to_be_reduced[4*threadIdx.x + 1] = gy;
 	data_to_be_reduced[4*threadIdx.x + 2] = gz;
-	#endif
 
 	// 2. Perform reduction via tensor units
 	reduce_via_tensor_units(data_to_be_reduced);
 
 	// 3. Retrieve results from shared memory
-	#ifdef USE_TCEC
 	gx = data_to_be_reduced[0];
 	gy = data_to_be_reduced[1];
 	gz = data_to_be_reduced[2];
-	#endif
 
 	/* End: Reduction using tensor units */
 #else
