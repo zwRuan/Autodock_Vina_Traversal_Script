@@ -657,12 +657,6 @@ __device__ void gpu_calc_energrad(
 	data_to_be_reduced[4*threadIdx.x + 1] = torque_rot.y;
 	data_to_be_reduced[4*threadIdx.x + 2] = torque_rot.z;
 	data_to_be_reduced[4*threadIdx.x + 3] = energy;
-	#else
-	__shared__ __align__(256) half data_to_be_reduced[4*NUM_OF_THREADS_PER_BLOCK];
-	data_to_be_reduced[4*threadIdx.x] = __float2half(torque_rot.x);
-	data_to_be_reduced[4*threadIdx.x + 1] = __float2half(torque_rot.y);
-	data_to_be_reduced[4*threadIdx.x + 2] = __float2half(torque_rot.z);
-	data_to_be_reduced[4*threadIdx.x + 3] = __float2half(energy);
 	#endif
 
 	// 2. Perform reduction via tensor units
@@ -674,11 +668,6 @@ __device__ void gpu_calc_energrad(
 	torque_rot.y = data_to_be_reduced[1];
 	torque_rot.z = data_to_be_reduced[2];
 	energy = data_to_be_reduced[3];
-	#else
-	torque_rot.x = __half2float(data_to_be_reduced[0]);
-	torque_rot.y = __half2float(data_to_be_reduced[1]);
-	torque_rot.z = __half2float(data_to_be_reduced[2]);
-	energy = __half2float(data_to_be_reduced[3]);
 	#endif
 
 	/* End: Reduction using tensor units */
@@ -715,10 +704,6 @@ __device__ void gpu_calc_energrad(
 	data_to_be_reduced[4*threadIdx.x] = gx;
 	data_to_be_reduced[4*threadIdx.x + 1] = gy;
 	data_to_be_reduced[4*threadIdx.x + 2] = gz;
-	#else
-	data_to_be_reduced[4*threadIdx.x] = __float2half(gx);
-	data_to_be_reduced[4*threadIdx.x + 1] = __float2half(gy);
-	data_to_be_reduced[4*threadIdx.x + 2] = __float2half(gz);
 	#endif
 
 	// 2. Perform reduction via tensor units
@@ -729,10 +714,6 @@ __device__ void gpu_calc_energrad(
 	gx = data_to_be_reduced[0];
 	gy = data_to_be_reduced[1];
 	gz = data_to_be_reduced[2];
-	#else
-	gx = __half2float(data_to_be_reduced[0]);
-	gy = __half2float(data_to_be_reduced[1]);
-	gz = __half2float(data_to_be_reduced[2]);
 	#endif
 
 	/* End: Reduction using tensor units */
