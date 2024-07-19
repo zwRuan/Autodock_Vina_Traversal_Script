@@ -56,10 +56,7 @@ endif
 
 ifeq ($(TENSOR), ON)
 	NVTENSOR=-DUSE_NVTENSOR
-
-	ifeq ($(TCEC), ON)
-		NVTENSOR+=-I./wmma_extension/include -DUSE_TCEC
-	endif
+	NVTENSOR+=-I./wmma_extension/include
 endif
 
 BIN := $(wildcard $(TARGET)*)
