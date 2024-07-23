@@ -16,6 +16,13 @@ CPP = g++
 UNAME := $(shell uname)
 
 TARGETS = 52 60 61 70 80
+
+ifeq ($(TENSOR), ON)
+	NVTENSOR=-DUSE_NVTENSOR
+	NVTENSOR+=-I./wmma_extension/include
+	TARGETS = 80
+endif
+
 CUDA_TARGETS=$(foreach target,$(TARGETS),-gencode arch=compute_$(target),code=sm_$(target))
 
 ifeq ($(DEVICE), CPU)
@@ -54,11 +61,6 @@ ifeq ($(OVERLAP), ON)
 	PIPELINE=-DUSE_PIPELINE -fopenmp
 endif
 
-ifeq ($(TENSOR), ON)
-	NVTENSOR=-DUSE_NVTENSOR
-	NVTENSOR+=-I./wmma_extension/include
-endif
-
 BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
@@ -67,6 +69,9 @@ BIN := $(wildcard $(TARGET)*)
 NUMWI=
 
 ifeq ($(NUMWI), 32)
+ifeq ($(TENSOR), ON)
+$(error NUMWI needs to be at least 64 with TENSOR=ON)
+endif
 	NWI=-DN32WI
 	TARGET:=$(TARGET)_32wi
 else ifeq ($(NUMWI), 64)
