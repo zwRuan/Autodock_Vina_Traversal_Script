@@ -403,11 +403,11 @@ std::vector<int> get_gpu_pool()
 	int gpuCount=0;
 	cudaError_t status;
 	status = cudaGetDeviceCount(&gpuCount);
-	RTERROR(status, "cudaGetDeviceCount failed");
+	RTERROR(status, "ERROR in cudaGetDeviceCount:");
 	std::vector<int> result;
 	cudaDeviceProp props;
 	for(unsigned int i=0; i<gpuCount; i++){
-		RTERROR(cudaGetDeviceProperties(&props,i),"cudaGetDeviceProperties failed");
+		RTERROR(cudaGetDeviceProperties(&props,i),"ERROR in cudaGetDeviceProperties:");
 		if(props.major>=3) result.push_back(i);
 	}
 	if (result.size() == 0)
@@ -430,7 +430,7 @@ void setup_gpu_for_docking(
 	// Initialize CUDA
 	int gpuCount=0;
 	cudaError_t status = cudaGetDeviceCount(&gpuCount);
-	RTERROR(status, "cudaGetDeviceCount failed");
+	RTERROR(status, "ERROR in cudaGetDeviceCount:");
 	if (gpuCount == 0)
 	{
 		printf("No CUDA-capable devices found, exiting.\n");
@@ -448,19 +448,19 @@ void setup_gpu_for_docking(
 	// Now that we have a device, gather some information
 	size_t freemem, totalmem;
 	cudaDeviceProp props;
-	RTERROR(cudaGetDevice(&(cData.devnum)),"cudaGetDevice failed");
-	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"cudaGetDeviceProperties failed");
+	RTERROR(cudaGetDevice(&(cData.devnum)),"ERROR in cudaGetDevice:");
+	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"ERROR in cudaGetDeviceProperties:");
 	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
 	strcpy(tData.device_name, props.name);
 	if(gpuCount>1) snprintf(&tData.device_name[strlen(props.name)], strlen(props.name)+32, " (#%d / %d)",cData.devnum+1,gpuCount);
 	printf("Cuda device:                              %s\n",tData.device_name);
-	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "cudaGetMemInfo failed");
+	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "ERROR in cudaGetMemInfo:");
 	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
 	cData.devid=cData.devnum;
 	cData.devnum=-2;
 #ifdef SET_CUDA_PRINTF_BUFFER
 	status = cudaDeviceSetLimit(cudaLimitPrintfFifoSize, 200000000ull);
-	RTERROR(status, "cudaDeviceSetLimit failed");
+	RTERROR(status, "ERROR in cudaDeviceSetLimit:");
 #endif
 	auto const t1 = std::chrono::steady_clock::now();
 	printf("\nCUDA Setup time %fs\n", elapsed_seconds(t0 ,t1));
@@ -512,16 +512,16 @@ void finish_gpu_from_docking(
 	status = cudaFree(cData.pKerconst_conform);
 	RTERROR(status, "cudaFree: error freeing cData.pKerconst_conform\n");
 	status = cudaFree(cData.pMem_rotbonds_const);
-	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_const");
+	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_const\n");
 	status = cudaFree(cData.pMem_rotbonds_atoms_const);
-	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const");
+	RTERROR(status, "cudaFree: error freeing cData.pMem_rotbonds_atoms_const\n");
 	status = cudaFree(cData.pMem_num_rotating_atoms_per_rotbond_const);
-	RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const");
+	RTERROR(status, "cudaFree: error freeing cData.pMem_num_rotating_atoms_per_rotbond_const\n");
 
 	// Non-constant
 	if(tData.pMem_fgrids){
 		status = cudaFree(tData.pMem_fgrids);
-		RTERROR(status, "cudaFree: error freeing pMem_fgrids");
+		RTERROR(status, "cudaFree: error freeing pMem_fgrids\n");
 	}
 	free(tData.device_name);
 }
@@ -1342,7 +1342,7 @@ parameters argc and argv:
 #endif
 #ifdef USE_CUDA
 				status = cudaMemcpy(sim_state.cpu_energies.data(), pMem_energies_current, size_energies, cudaMemcpyDeviceToHost);
-				RTERROR(status, "cudaMemcpy: couldn't download pMem_energies_current");
+				RTERROR(status, "cudaMemcpy: couldn't download pMem_energies_current.\n");
 #endif
 				if (autostop.check_if_satisfactory(generation_cnt, sim_state.cpu_energies.data(), total_evals))
 					if (total_evals>min_as_evals)
@@ -1643,19 +1643,19 @@ parameters argc and argv:
 #endif
 #ifdef USE_CUDA
 	status = cudaFree(tData.pMem_conformations1);
-	RTERROR(status, "cudaFree: error freeing pMem_conformations1");
+	RTERROR(status, "cudaFree: error freeing pMem_conformations1.\n");
 	status = cudaFree(tData.pMem_conformations2);
-	RTERROR(status, "cudaFree: error freeing pMem_conformations2");
+	RTERROR(status, "cudaFree: error freeing pMem_conformations2.\n");
 	status = cudaFree(tData.pMem_energies1);
-	RTERROR(status, "cudaFree: error freeing pMem_energies1");
+	RTERROR(status, "cudaFree: error freeing pMem_energies1.\n");
 	status = cudaFree(tData.pMem_energies2);
-	RTERROR(status, "cudaFree: error freeing pMem_energies2");
+	RTERROR(status, "cudaFree: error freeing pMem_energies2.\n");
 	status = cudaFree(tData.pMem_evals_of_new_entities);
-	RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities");
+	RTERROR(status, "cudaFree: error freeing pMem_evals_of_new_entities.\n");
 	status = cudaFree(tData.pMem_gpu_evals_of_runs);
-	RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs");
+	RTERROR(status, "cudaFree: error freeing pMem_gpu_evals_of_runs.\n");
 	status = cudaFree(tData.pMem_prng_states);
-	RTERROR(status, "cudaFree: error freeing pMem_prng_states");
+	RTERROR(status, "cudaFree: error freeing pMem_prng_states.\n");
 #endif
 	delete KerConst_interintra;
 	delete KerConst_intracontrib;
