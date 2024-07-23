@@ -3,11 +3,13 @@
 
 current_dir=`pwd`
 script_dir=`dirname $0`
-CUDA_VERSION=`nvcc --version | grep release | awk '{ print $(NF-1) }' | sed "s/,//g"`
+CUDA_VERSION=`nvcc --version 2>/dev/null | grep release | awk '{ print $(NF-1) }' | sed "s/,//g"`
 if [[ $CUDA_VERSION != "" ]]; then
 	printf "Using Cuda %s\n" $CUDA_VERSION >&2
 else
-	printf "Error: nvcc command is not working.\n" >&2
+	if [[ $DEVICE == "CUDA" ]]; then
+		printf "Error: nvcc command does not exist/is not working properly.\n" >&2
+	fi
 	exit 1
 fi
 if [[ "$4" != "" ]]; then
