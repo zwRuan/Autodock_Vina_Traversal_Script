@@ -133,8 +133,8 @@ else
 		NWI=-DN16WI
 		TARGET:=$(TARGET)_16wi
 	else ifeq ($(DEVICE), GPU)
-		NWI=-DN64WI
-		TARGET:=$(TARGET)_64wi
+		NWI=-DN128WI
+		TARGET:=$(TARGET)_128wi
 	endif
 endif
 

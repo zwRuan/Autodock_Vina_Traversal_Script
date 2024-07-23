@@ -24,13 +24,18 @@
 # Choose OpenCL device
 # Valid values: CPU, GPU, CUDA, OCLGPU
 
+OVERLAP = ON
+
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
-TEST_CUDA := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)")
+TARGETS_SUPPORTED := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)" "$(TARGETS)")
 # if user specifies DEVICE=CUDA it will be used (wether the test succeeds or not)
 # if user specifies DEVICE=GPU the test result determines wether CUDA will be used or not
-ifeq ($(DEVICE)$(TEST_CUDA),GPUyes)
-override DEVICE:=CUDA
+ifeq ($(TARGETS_SUPPORTED),)
+$(error Cuda verification failed)
 endif
+override TARGETS:=$(TARGETS_SUPPORTED)
+export
+override DEVICE:=CUDA
 endif
 ifeq ($(DEVICE),CUDA)
 override DEVICE:=GPU
