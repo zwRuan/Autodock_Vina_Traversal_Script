@@ -12,17 +12,21 @@ else
 	fi
 	exit 1
 fi
+TARGETS_SUPPORTED=`nvcc --list-gpu-arch 2>/dev/null`
+if [[ $TARGETS_SUPPORTED == "" ]]; then # might be an older Cuda version that doesn't have the --list-gpu-arch option
+	TARGETS_SUPPORTED=`nvcc --help | grep -oP "compute_\d+" | sort -u`
+fi
 if [[ "$4" != "" ]]; then
 	for T in $4; do
-		TARGET_SUPPORTED=`nvcc --list-gpu-arch | grep $T`
-		if [[ $TARGET_SUPPORTED == "" ]]; then
+		SUPPORTED=`grep -o $T <<< $TARGETS_SUPPORTED`
+		if [[ $SUPPORTED == "" ]]; then
 			printf "Error: Specified compute target <$T> not supported by installed Cuda version.\n" >&2
 			exit 1
 		fi
 	done
 	TARGETS="$4"
 else
-	TARGETS=`nvcc --list-gpu-arch | awk -F'_' '{if(\$2>50) print \$2}' | tr "\n" " "`
+	TARGETS=`awk -F'_' '{ if(\$2>50) print \$2 }' <<< "$TARGETS_SUPPORTED" | tr "\n" " "`
 fi
 printf "Compiling for targets: %s\n" "$TARGETS" >&2
 cd "$script_dir"
