@@ -28,11 +28,11 @@ See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Pub
 
 | Operating system                         | CPU                          | GPU                                            |
 |:----------------------------------------:|:----------------------------:|:----------------------------------------------:|
-|CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | AMD APP SDK v3.0 / CUDA 9, 10, and 11          |
+|CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | OpenCL / CUDA >= 11                            |
 |macOS Catalina 10.15.1                    | Apple / Intel                | Apple / Intel Iris, Radeon Vega 64, Radeon VII |
 
 
-Other environments or configurations likely work as well, but are untested.
+Other environments or configurations likely work as well, but are untested. AutoDock-GPU since commit 846dc2b requires a C++17-capable compiler, which in practice means GCC >= 9. This also means the minimum version supported for Cuda-compilation is Cuda 11, however, since all versions of Cuda also come with OpenCL older versions can still be used using the OpenCL code path ('DEVICE=OCLGPU').
 
 # Compilation
 
@@ -45,7 +45,7 @@ make DEVICE=<TYPE> NUMWI=<NWI>
 
 | Parameters | Description                  | Values                                             |
 |:----------:|:----------------------------:|:--------------------------------------------------:|
-| `<TYPE>`   | Accelerator chosen           | `CPU`, `GPU`, `CUDA`, `OCLGPU`                     |
+| `<TYPE>`   | Accelerator chosen           | `CPU`, `GPU`, `CUDA`, `OCLGPU`, `OPENCL`           |
 | `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
 
 When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU`. The cpu target is only supported using OpenCL. Furthermore, an OpenMP-enabled overlapped pipeline (for setup and processing) can be compiled with `OVERLAP=ON`.
