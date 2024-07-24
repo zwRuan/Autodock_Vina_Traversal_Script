@@ -32,7 +32,7 @@ See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Pub
 |macOS Catalina 10.15.1                    | Apple / Intel                | Apple / Intel Iris, Radeon Vega 64, Radeon VII |
 
 
-Other environments or configurations likely work as well, but are untested. AutoDock-GPU since commit 846dc2b requires a C++17-capable compiler, which in practice means GCC >= 9. This also means the minimum version supported for Cuda-compilation is Cuda 11, however, since all versions of Cuda also come with OpenCL older versions can still be used using the OpenCL code path ('DEVICE=OCLGPU').
+Other environments or configurations likely work as well, but are untested. AutoDock-GPU since commit 846dc2b requires a C++17-capable compiler, which in practice means GCC >= 9. This also means the minimum version supported for Cuda-compilation is Cuda 11, however, since all versions of Cuda also come with OpenCL older versions can still be used using the OpenCL code path (`DEVICE=OCLGPU`).
 
 # Compilation
 
