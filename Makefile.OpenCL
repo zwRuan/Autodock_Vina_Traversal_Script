@@ -133,8 +133,8 @@ else
 		NWI=-DN16WI
 		TARGET:=$(TARGET)_16wi
 	else ifeq ($(DEVICE), GPU)
-		NWI=-DN64WI
-		TARGET:=$(TARGET)_64wi
+		NWI=-DN128WI
+		TARGET:=$(TARGET)_128wi
 	endif
 endif
 
@@ -276,7 +276,7 @@ NRUN     := 100
 NGEN     := 27000
 POPSIZE  := 150
 TESTNAME := test
-TESTLS   := sw
+TESTLS   := ad
 
 test: odock
 	$(BIN_DIR)/$(TARGET) \
@@ -288,23 +288,5 @@ test: odock
 	-resnam $(TESTNAME) \
 	-gfpop 0 \
 	-lsmet $(TESTLS)
-
-ASTEX_PDB := 2bsm
-ASTEX_NRUN:= 10
-ASTEX_POPSIZE := 10
-ASTEX_TESTNAME := test_astex
-ASTEX_LS := sw
-
-astex: odock
-	$(BIN_DIR)/$(TARGET) \
-	-ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld \
-	-lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt \
-	-nrun $(ASTEX_NRUN) \
-	-psize $(ASTEX_POPSIZE) \
-	-resnam $(ASTEX_TESTNAME) \
-	-gfpop 1 \
-	-lsmet $(ASTEX_LS)
-
-#	$(BIN_DIR)/$(TARGET) -ffile ./input_tsri/search-set-astex/$(ASTEX_PDB)/protein.maps.fld -lfile ./input_tsri/search-set-astex/$(ASTEX_PDB)/flex-xray.pdbqt -nrun $(ASTEX_NRUN) -psize $(ASTEX_POPSIZE) -resnam $(ASTEX_TESTNAME) -gfpop 1 | tee ./input_tsri/search-set-astex/intrapairs/$(ASTEX_PDB)_intrapair.txt
 
 .PHONY: clean

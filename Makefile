@@ -22,13 +22,25 @@
 # DEVICE=OCLGPU
 # ------------------------------------------------------
 # Choose OpenCL device
-# Valid values: CPU, GPU, CUDA, OCLGPU
+# Valid values: CPU, GPU, CUDA, OCLGPU, OPENCL
+
+OVERLAP = ON
 
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
-TEST_CUDA := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)")
-# if user specifies DEVICE=CUDA it will be used (wether the test succeeds or not)
+TARGETS_SUPPORTED := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)" "$(TARGETS)" "$(DEVICE)")
 # if user specifies DEVICE=GPU the test result determines wether CUDA will be used or not
-ifeq ($(DEVICE)$(TEST_CUDA),GPUyes)
+ifeq ($(TARGETS_SUPPORTED),)
+ifeq ($(DEVICE),CUDA)
+$(error Cuda verification failed)
+else
+$(info Cuda is not available, using OpenCL)
+$(info )
+override DEVICE:=GPU
+export
+endif
+else
+override TARGETS:=$(TARGETS_SUPPORTED)
+export
 override DEVICE:=CUDA
 endif
 endif
@@ -37,9 +49,14 @@ override DEVICE:=GPU
 export
 include Makefile.Cuda
 else
-ifeq ($(DEVICE),OCLGPU)
+ifeq ($(DEVICE),$(filter $(DEVICE),OCLGPU OPENCL))
 override DEVICE:=GPU
 export
+$(info Using OpenCL)
+$(info )
 endif
+$(info Please make sure to set environment variables)
+$(info GPU_INCLUDE_PATH and GPU_LIBRARY_PATH)
+$(info )
 include Makefile.OpenCL
 endif
