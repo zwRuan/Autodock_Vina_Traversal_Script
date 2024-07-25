@@ -126,78 +126,11 @@ constexpr int rowscols_M = 16;	// Number of rows (or cols) in the M dimension
 constexpr int rowscols_N = 16;	// Number of rows (or cols) in the N dimension
 constexpr int rowscols_K = 16;	// Number of rows (or cols) in the K dimension
 
-__device__ void fill_Q(float *Q_data) {
-
-	float I4[16] = {
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	/*
-	// Naive implementation: a single thread fills data in
-	if (threadIdx.x == 0) {
-		for (uint i = 0; i < 4; i++) {	// How many rows (of 4x4 blocks) are there in matrix A?
-			for (uint j = 0; j < 4; j++) {	// How many cols (of 4x4 blocks) are there in matrix A?
-				for (uint ii = 0; ii < 4; ii++) {
-					for (uint jj = 0; jj < 4; jj++) {
-						Q_data[4*i + 64*j + ii + 16*jj] = I4 [4*ii + jj];
-					}
-				}
-			}
-		}
-	}
-	*/
-
-	// Slightly improved multi-threaded implementation
-	for (uint i = threadIdx.x; i < 4; i+=blockDim.x) {	// How many rows (of 4x4 blocks) are there in matrix A?
-		for (uint j = 0; j < 4; j++) {	// How many cols (of 4x4 blocks) are there in matrix A?
-			for (uint ii = 0; ii < 4; ii++) {
-				for (uint jj = 0; jj < 4; jj++) {
-					Q_data[4*i + 64*j + ii + 16*jj] = I4 [4*ii + jj];
-				}
-			}
-		}
-	}
-
-	/*
-	// Further improved multi-threaded implementation
-	// (It didn't provide significant performance improvements -> commented out)
-	// Fusing two outer loops into a single one
-	// To do that: coeffs = 4i + 64j
-	constexpr uint coeffs [16] = {0, 64, 128, 192, 4, 68, 132, 196, 8, 72, 136, 200, 12, 76, 140, 204};
-	for (uint k = threadIdx.x; k < 16; k+=blockDim.x) {
-		for (uint ii = 0; ii < 4; ii++) {
-			for (uint jj = 0; jj < 4; jj++) {
-				Q_data[coeffs[k] + ii + 16*jj] = I4 [4*ii + jj];
-			}
-		}	
-	}
-	*/
-
-	/*
-	// Enable this block to print matrix values
-	if (blockIdx.x == 0 && threadIdx.x == 0) {
-		printf("\nQ_data");
-		for (uint i = 0; i < 16 * 16; i++) {
-			if ((i % 16) == 0) {printf("\n[Row %u]: ", i/16);}
-			printf(" %2.2f ", Q_data[i]);
-		}
-		printf("\n");
-    }
-	*/
-}
-
 __device__ void reduce_via_tensor_units(float *data_to_be_reduced) {
 	__syncthreads();
 
 	if (threadIdx.x <= 31) { // Only one warp performs reduction
-		__shared__ __align__ (256) float Q_data[TILE_SIZE];
-
-		fill_Q(Q_data);
-
-		__shared__ __align__ (256) float tmp[TILE_SIZE];
+		__shared__ __align__ (256) float Q_square[TILE_SIZE]; // storage for 16x16 matrix and 4x4 tiles of I4 matrix after
 
 		// Declaring and filling fragments - Those are *not* shared
 		mtk::wmma::tcec::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_P;
@@ -210,7 +143,6 @@ __device__ void reduce_via_tensor_units(float *data_to_be_reduced) {
 		mtk::wmma::tcec::fill_fragment(frag_P, 1.0f); // P: only ones
 		mtk::wmma::tcec::fill_fragment(frag_V, 0.0f); // Output: initialize to zeros
 		mtk::wmma::tcec::fill_fragment(frag_C, 0.0f); // Final result
-		mtk::wmma::tcec::load_matrix_sync(frag_Q, Q_data, 16);
 
 		// 1. Accumulate the values: V <- AP + V
 		for(uint i = 0; i < (4 * NUM_OF_THREADS_PER_BLOCK)/TILE_SIZE; i++){
@@ -222,10 +154,17 @@ __device__ void reduce_via_tensor_units(float *data_to_be_reduced) {
 		}
 
 		// W <- V (required since we need V as a "wmma::matrix_b")
-		mtk::wmma::tcec::store_matrix_sync(tmp, frag_V, 16, wmma::mem_col_major);
-		mtk::wmma::tcec::load_matrix_sync(frag_W, tmp, 16);
+		mtk::wmma::tcec::store_matrix_sync(Q_square, frag_V, 16, wmma::mem_col_major);
+		mtk::wmma::tcec::load_matrix_sync(frag_W, Q_square, 16);
 
 		// 2. Perform line sum: C <- QW + C (zero)
+		//    a) create a 4x4 tiled matrix containing 4x4 identity matrix in each tile:
+		//       - TENSOR=ON requires NUMWI to be larger than 32, so the following works and neatly gets rid of an additional function:
+		const unsigned int k  = (threadIdx.x<<3);
+		const unsigned int kk = 16 - (threadIdx.x>>1);
+		for(uint i = 0; i < 8; i++) Q_square[k + i] = ((i + kk) & 3) ? 0.0f : 1.0f;
+		mtk::wmma::tcec::load_matrix_sync(frag_Q, Q_square, 16);
+		//    b) perform sum
 		mtk::wmma::tcec::mma_sync(frag_C, frag_Q, frag_W, frag_C);
 
 		// 3. Store result in shared memory
