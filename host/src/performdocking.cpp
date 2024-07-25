@@ -450,6 +450,13 @@ void setup_gpu_for_docking(
 	cudaDeviceProp props;
 	RTERROR(cudaGetDevice(&(cData.devnum)),"ERROR in cudaGetDevice:");
 	RTERROR(cudaGetDeviceProperties(&props,cData.devnum),"ERROR in cudaGetDeviceProperties:");
+#ifdef USE_NVTENSOR
+	if(props.major < 8){
+		printf("Error: Compute capability 8.0 or higher is needed for tensor core sum reductions.\n");
+		printf("       Available device %s has compute capability %d.%d.\n", props.name, props.major, props.minor);
+		exit(-1);
+	}
+#endif
 	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
 	strcpy(tData.device_name, props.name);
 	if(gpuCount>1) snprintf(&tData.device_name[strlen(props.name)], strlen(props.name)+32, " (#%d / %d)",cData.devnum+1,gpuCount);

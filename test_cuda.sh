@@ -26,7 +26,7 @@ if [[ "$4" != "" ]]; then
 	done
 	TARGETS="$4"
 else
-	TARGETS=`awk -F'_' '{ if(\$2>50) print \$2 }' <<< "$TARGETS_SUPPORTED" | tr "\n" " "`
+	TARGETS=`awk -F'_' "{ if(\\$2>=$5) print \\$2 }" <<< "$TARGETS_SUPPORTED" | tr "\n" " "`
 fi
 printf "Compiling for targets: %s\n" "$TARGETS" >&2
 cd "$script_dir"

@@ -27,7 +27,11 @@
 OVERLAP = ON
 
 ifeq ($(DEVICE), $(filter $(DEVICE),GPU CUDA))
-TARGETS_SUPPORTED := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)" "$(TARGETS)" "$(DEVICE)")
+MIN_COMPUTE:=50
+ifeq ($(TENSOR), ON)
+MIN_COMPUTE:=80
+endif
+TARGETS_SUPPORTED := $(shell ./test_cuda.sh nvcc "$(GPU_INCLUDE_PATH)" "$(GPU_LIBRARY_PATH)" "$(TARGETS)" "$(MIN_COMPUTE)")
 # if user specifies DEVICE=GPU the test result determines wether CUDA will be used or not
 ifeq ($(TARGETS_SUPPORTED),)
 ifeq ($(DEVICE),CUDA)
