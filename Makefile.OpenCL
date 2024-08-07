@@ -29,8 +29,11 @@ $(shell ln -sf /System/Library/Frameworks/OpenCL.framework/OpenCL ./libOpenCL.dy
 LIB_OPENCL = -L./ -lOpenCL
 endif
 else
+ifeq ($(GPU_LIBRARY_PATH),)
+GPU_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
+endif
 # in the normal case we can just include the framework
-LIB_OPENCL = -framework OpenCL
+LIB_OPENCL = -F$(GPU_LIBRARY_PATH) -framework OpenCL
 endif
 endif
 
