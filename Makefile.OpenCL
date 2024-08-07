@@ -33,7 +33,7 @@ ifeq ($(GPU_LIBRARY_PATH),)
 GPU_LIBRARY_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks
 endif
 # in the normal case we can just include the framework
-LIB_OPENCL = -F$(GPU_LIBRARY_PATH) -framework OpenCL
+LIB_OPENCL = -F$(GPU_LIBRARY_PATH) -framework OpenCL -Wno-nullability-completeness-on-arrays
 endif
 endif
 
