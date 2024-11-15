@@ -176,6 +176,15 @@ The contact analysis results for each pose are output in dlg lines starting with
 
 Visit the project [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
 
+AutoDock-GPU requires [Meeko](https://github.com/forlilab/meeko) for
+preparing the receptor and ligands, and
+[autogrid](https://github.com/ccsb-scripps/autogrid) for calculating the
+affinity grid maps, including the file ending in `.maps.fld` that is passed
+to option `-M` or `--ffile`.
+
+Visit [the Meeko documentation](https://meeko.readthedocs.io) for more
+information and tutorials covering AutoDock-GPU usage.
+
 # Contributing
 
 * If you have a bug report, please check the [open issues](https://github.com/ccsb-scripps/AutoDock-GPU/issues), and if it has not been reported yet, open a new one.
