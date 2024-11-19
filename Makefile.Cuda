@@ -16,6 +16,13 @@ CPP = g++
 UNAME := $(shell uname)
 
 TARGETS = 52 60 61 70 80
+
+ifeq ($(TENSOR), ON)
+	NVTENSOR=-DUSE_NVTENSOR
+	NVTENSOR+=-I./wmma_extension/include
+	TARGETS = 80
+endif
+
 CUDA_TARGETS=$(foreach target,$(TARGETS),-gencode arch=compute_$(target),code=sm_$(target))
 
 ifeq ($(DEVICE), CPU)
@@ -54,7 +61,6 @@ ifeq ($(OVERLAP), ON)
 	PIPELINE=-DUSE_PIPELINE -fopenmp
 endif
 
-
 BIN := $(wildcard $(TARGET)*)
 
 # ------------------------------------------------------
@@ -63,6 +69,9 @@ BIN := $(wildcard $(TARGET)*)
 NUMWI=
 
 ifeq ($(NUMWI), 32)
+ifeq ($(TENSOR), ON)
+$(error NUMWI needs to be at least 64 with TENSOR=ON)
+endif
 	NWI=-DN32WI
 	TARGET:=$(TARGET)_32wi
 else ifeq ($(NUMWI), 64)
@@ -177,7 +186,7 @@ TOOL_CFLAGS+=-DVERSION=\"$(GIT_VERSION)\"
 # ------------------------------------------------------
 
 kernels: $(KERNEL_SRC)
-	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) -c $(KRNL_DIR)/kernels.cu
+	$(NVCC) $(NWI) $(REP) $(CUDA_FLAGS) $(IFLAGS) $(CUDA_INCLUDES) $(NVTENSOR) -c $(KRNL_DIR)/kernels.cu
 
 otool:
 	@echo "Building" $(TOOL_TARGET) "..."
@@ -185,7 +194,7 @@ otool:
 	$(shell ls $(HOST_SRC_DIR)/*.cpp) \
 	$(TOOL_CFLAGS) \
 	-o$(BIN_DIR)/$(TOOL_TARGET) \
-	$(PIPELINE) $(OPT) -DTOOLMODE $(REP)
+	$(PIPELINE) $(NVTENSOR) $(OPT) -DTOOLMODE $(REP)
 
 odock: check-env-all kernels
 	@echo "Building" $(TARGET) "..."
@@ -194,7 +203,7 @@ odock: check-env-all kernels
 	$(CFLAGS) \
 	$(LIB_CUDA) \
 	-o$(BIN_DIR)/$(TARGET) \
-	$(DEV) $(NWI) $(PIPELINE) $(OPT) $(DD) $(REP) $(KFLAGS)
+	$(DEV) $(NWI) $(PIPELINE) $(NVTENSOR) $(OPT) $(DD) $(REP) $(KFLAGS)
 
 # Example
 # 1ac8: for testing gradients of translation and rotation genes

@@ -93,6 +93,90 @@ __device__ inline int64_t ullitolli(uint64_t u)
 #define ATOMICADDF32(pAccumulator, value) atomicAdd(pAccumulator, (value))
 #define ATOMICSUBF32(pAccumulator, value) atomicAdd(pAccumulator, -(value))
 
+#ifdef USE_NVTENSOR
+/* Begin: Reduction using tensor units */
+
+// Implementation based on M.Sc. thesis by Gabin Schieffer at KTH:
+// "Accelerating a Molecular Docking Application by Leveraging Modern Heterogeneous Computing Systemx"
+// https://www.diva-portal.org/smash/get/diva2:1786161/FULLTEXT01.pdf
+
+	/*
+	* WMMA Extension for single precision matmul using Tensor Cores
+	* and error correction technique (TCEC)
+	* https://github.com/wmmae/wmma_extension/blob/main/docs/mma_f32.md
+	*/
+	#include <wmma_extension/tcec/tcec.hpp>
+	using tf32 = nvcuda::wmma::precision::tf32;
+
+/*
+ * Tensor Cores
+ * https://developer.nvidia.com/blog/programming-tensor-cores-cuda-9
+ *
+ * Don't forget to compile specifying the architecture, e.g., sm_86.
+ * For AutoDock-GPU, this can be done via the TARGETS option.
+ * make DEVICE=GPU TESTLS=ad NUMWI=64 TARGETS=86 test
+ * https://stackoverflow.com/a/53634598/1616865
+ */
+#include <mma.h>
+using namespace nvcuda;
+
+#define TILE_SIZE (16 * 16)
+
+constexpr int rowscols_M = 16;	// Number of rows (or cols) in the M dimension
+constexpr int rowscols_N = 16;	// Number of rows (or cols) in the N dimension
+constexpr int rowscols_K = 16;	// Number of rows (or cols) in the K dimension
+
+__device__ void reduce_via_tensor_units(float *data_to_be_reduced) {
+	__syncthreads();
+
+	if (threadIdx.x <= 31) { // Only one warp performs reduction
+		__shared__ __align__ (256) float Q_square[TILE_SIZE]; // storage for 16x16 matrix and 4x4 tiles of I4 matrix after
+
+		// Declaring and filling fragments - Those are *not* shared
+		mtk::wmma::tcec::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_P;
+		mtk::wmma::tcec::fragment<wmma::accumulator, rowscols_M, rowscols_N, rowscols_K, tf32> frag_V;
+
+		mtk::wmma::tcec::fragment<wmma::matrix_a, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_Q;
+		mtk::wmma::tcec::fragment<wmma::matrix_b, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_W;
+		mtk::wmma::tcec::fragment<wmma::accumulator, rowscols_M, rowscols_N, rowscols_K, tf32> frag_C;
+
+		mtk::wmma::tcec::fill_fragment(frag_P, 1.0f); // P: only ones
+		mtk::wmma::tcec::fill_fragment(frag_V, 0.0f); // Output: initialize to zeros
+		mtk::wmma::tcec::fill_fragment(frag_C, 0.0f); // Final result
+
+		// 1. Accumulate the values: V <- AP + V
+		for(uint i = 0; i < (4 * NUM_OF_THREADS_PER_BLOCK)/TILE_SIZE; i++){
+			const unsigned int offset = i * TILE_SIZE;
+
+			mtk::wmma::tcec::fragment<wmma::matrix_a, rowscols_M, rowscols_N, rowscols_K, tf32, wmma::col_major> frag_A;
+			mtk::wmma::tcec::load_matrix_sync(frag_A, data_to_be_reduced + offset, 16);
+			mtk::wmma::tcec::mma_sync(frag_V, frag_A, frag_P, frag_V);
+		}
+
+		// W <- V (required since we need V as a "wmma::matrix_b")
+		mtk::wmma::tcec::store_matrix_sync(Q_square, frag_V, 16, wmma::mem_col_major);
+		mtk::wmma::tcec::load_matrix_sync(frag_W, Q_square, 16);
+
+		// 2. Perform line sum: C <- QW + C (zero)
+		//    a) create a 4x4 tiled matrix containing 4x4 identity matrix in each tile:
+		//       - TENSOR=ON requires NUMWI to be larger than 32, so the following works and neatly gets rid of an additional function:
+		const unsigned int k  = (threadIdx.x<<3);
+		const unsigned int kk = 16 - (threadIdx.x>>1);
+		for(uint i = 0; i < 8; i++) Q_square[k + i] = ((i + kk) & 3) ? 0.0f : 1.0f;
+		mtk::wmma::tcec::load_matrix_sync(frag_Q, Q_square, 16);
+		//    b) perform sum
+		mtk::wmma::tcec::mma_sync(frag_C, frag_Q, frag_W, frag_C);
+
+		// 3. Store result in shared memory
+		mtk::wmma::tcec::store_matrix_sync(data_to_be_reduced, frag_C, 16, wmma::mem_col_major);
+	}
+
+	__syncthreads();
+}
+
+/* End: Reduction using tensor units */
+#endif
+
 #define REDUCEFLOATSUM(value, pAccumulator) \
 	if (threadIdx.x == 0) \
 	{ \
