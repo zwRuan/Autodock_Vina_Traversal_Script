@@ -235,7 +235,7 @@ void setup_gpu_for_docking(
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, 0, NULL, &dev_name_size);
 	tData.device_name = (char*) malloc(dev_name_size+32); // make sure array is large enough to hold device number text too
 	clGetDeviceInfo(device_ids[cData.devnum], CL_DEVICE_NAME, dev_name_size, tData.device_name, NULL);
-	if(deviceCount>1) snprintf(&tData.device_name[dev_name_size-1], dev_name_size+32, " (#%d / %d)",cData.devnum+1,deviceCount);
+	if(deviceCount>1) snprintf(&tData.device_name[dev_name_size-1], 32, " (#%d / %d)",cData.devnum+1,deviceCount);
 	printf("OpenCL device:                           %s\n",tData.device_name);
 	cData.devnum=-2;
 
@@ -457,9 +457,9 @@ void setup_gpu_for_docking(
 		exit(-1);
 	}
 #endif
-	tData.device_name = (char*) malloc(strlen(props.name)+32); // make sure array is large enough to hold device number text too
+	tData.device_name = (char*) malloc(strlen(props.name)+33); // make sure array is large enough to hold device number text too
 	strcpy(tData.device_name, props.name);
-	if(gpuCount>1) snprintf(&tData.device_name[strlen(props.name)], strlen(props.name)+32, " (#%d / %d)",cData.devnum+1,gpuCount);
+	if(gpuCount>1) snprintf(&tData.device_name[strlen(props.name)], 32, " (#%d / %d)",cData.devnum+1,gpuCount);
 	printf("Cuda device:                              %s\n",tData.device_name);
 	RTERROR(cudaMemGetInfo(&freemem,&totalmem), "ERROR in cudaGetMemInfo:");
 	printf("Available memory on device:               %lu MB (total: %lu MB)\n",(freemem>>20),(totalmem>>20));
