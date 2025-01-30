@@ -191,11 +191,14 @@ int get_gridvalues(Gridinfo* mygrid)
 // If there are any errors, it returns 1, otherwise
 // the return value is 0.
 {
-	if(mygrid->grids.size()>0) return 0; // we already read the grid maps
+	if(mygrid->grids.size()>0) return 0; // we already read the grid maps, even if some failed (0 to make the errors show up once for reading thread)
 	mygrid->grids.resize(2*mygrid->grid_mapping.size()*
 	                      (mygrid->size_xyz[0])*
 	                      (mygrid->size_xyz[1])*
 	                      (mygrid->size_xyz[2]));
+	mygrid->map_present.resize(mygrid->grid_mapping.size()/2);
+	std::fill(mygrid->map_present.begin(), mygrid->map_present.end(), false);
+	
 	int t, ti, x, y, z;
 	std::ifstream fp;
 	std::string fn, line;
@@ -204,8 +207,10 @@ int get_gridvalues(Gridinfo* mygrid)
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
 
+	mygrid->error_count = 0;
 	for (t=0; t < mygrid->grid_mapping.size()/2; t++)
 	{
+		bool map_reading_failure = false;
 		ti = t + mygrid->grid_mapping.size()/2;
 		if(mygrid->fld_relative){ // this is always true (unless changed)
 			fn=mygrid->grid_file_path;
@@ -216,8 +221,12 @@ int get_gridvalues(Gridinfo* mygrid)
 		}
 		if (fp.fail())
 		{
-			printf("Error: Can't open grid map %s.\n", fn.c_str());
-			return 1;
+			fp.clear();
+			printf("Error: Can't open grid map %s specified in fld file.\n", fn.c_str());
+			printf("       Continuing in case ligands don't use it.\n");
+			map_reading_failure = true;
+			mygrid->error_count++;
+			continue;
 		}
 
 		// seeking to first data
@@ -225,10 +234,13 @@ int get_gridvalues(Gridinfo* mygrid)
 			if(!std::getline(fp, line)){
 				printf("Error: Failed reading preamble of grid map %s: ", fn.c_str());
 				if(fp.eof()) printf("file too small.\n"); else printf("I/O error\n");
-				return 1;
+				map_reading_failure = true;
+				mygrid->error_count++;
+				break;
 			}
 		}
 		while (line.find("CENTER") != 0);
+		if(map_reading_failure) continue;
 
 		// reading values
 		for (z=0; z < mygrid->size_xyz[2]; z++)
@@ -238,7 +250,8 @@ int get_gridvalues(Gridinfo* mygrid)
 					if(!std::getline(fp, line)){ // sscanf(line.c_str(), "%f", mypoi);
 						printf("Error: Failed reading grid map data points from %s: ", fn.c_str());
 						if(fp.eof()) printf("file too small.\n"); else printf("I/O error\n");
-						return 1;
+						map_reading_failure = true;
+						goto grid_reading_finish;
 					}
 					*mypoi = map2float(line.c_str());
 					// fill in duplicate data for linearized memory access in kernel
@@ -247,8 +260,11 @@ int get_gridvalues(Gridinfo* mygrid)
 					if(y>0 && z>0) *(mypoi-4*(g2+g1)+3) = *mypoi;
 					mypoi+=4;
 				}
+grid_reading_finish:
 		fp.close();
+		mygrid->map_present[t]  = !map_reading_failure;
+		mygrid->error_count    += map_reading_failure;
 	}
-	return 0;
+	return mygrid->error_count;
 }
 

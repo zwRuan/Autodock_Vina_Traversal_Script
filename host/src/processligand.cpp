@@ -238,12 +238,16 @@ int set_liganddata_typeid(
 				return 1;
 			}
 		}
+		if(!mygrid->map_present[myligand->atom_map_to_fgrids[atom_id]]){
+			printf("Error: Grid map reading failed for ligand atom type %s (see error message earlier).\n", typeof_new_atom);
+			return 3;
+		}
 		return 0;
 	}
 	else // if typeof_new_atom hasn't been found
 	{
 		printf("Error: No grid map for ligand atom type %s.\n", typeof_new_atom);
-		return 1;
+		return 3;
 	}
 }
 
@@ -1189,8 +1193,8 @@ int parse_liganddata(
 				// moved by the three spaces above
 				range_trim_to_char(line, 80, 83, tempstr); // reading atom type
 				sscanf(&line.c_str()[73], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge (there's a space behind it)
-				if (set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr) != 0) // the function sets the type index
-					return 1;
+				int err_status = set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr); // the function sets the type index
+				if (err_status != 0) return err_status;
 				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)
 					if(strcmp(myligand->atom_types[(int)myligand->atom_idxyzq[atom_counter][0]],myligand->base_atom_types[(int)myligand->atom_idxyzq[atom_counter][0]])==0) // derived Gx type does not exists
 						myligand->ignore_inter[atom_counter] = true;

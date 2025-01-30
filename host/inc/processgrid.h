@@ -49,10 +49,12 @@ typedef struct _Gridinfo
 	int         size_xyz           [3];
 	double      spacing;
 	double      size_xyz_angstr    [3];
-	bool        fld_relative       = true; // By default (and until further notice) map file names are relative to the fld file
+	bool        fld_relative       = true;  // By default (and until further notice) map file names are relative to the fld file
 	int         num_of_map_atypes;
 	double      origo_real_xyz     [3];
-	std::vector<std::string> grid_mapping; // stores the atom types and associated map filenames from the fld file
+	unsigned int error_count       = 0;
+	std::vector<bool> map_present;
+	std::vector<std::string> grid_mapping;  // stores the atom types and associated map filenames from the fld file
 	std::vector<float> grids;
 } Gridinfo;
 

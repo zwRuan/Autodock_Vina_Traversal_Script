@@ -277,11 +277,21 @@ int setup(
 	//------------------------------------------------------------
 
 	// Filling mygrid according to the fld file
-	if (get_gridinfo(mypars->fldfile, mygrid) != 0)
-	{
+	int grid_status;
+#ifdef USE_PIPELINE
+	#pragma omp critical
+#endif
+	grid_status = get_gridinfo(mypars->fldfile, mygrid);
+	if (grid_status != 0){
 		printf("\nError in get_gridinfo, stopped job.\n");
 		return 1;
 	}
+
+	// Reading the grid files and storing values if not already done
+#ifdef USE_PIPELINE
+	#pragma omp critical
+#endif
+	grid_status = get_gridvalues(mygrid);
 
 	// Filling the atom types field of myligand according to the grid types
 	if (init_liganddata(mypars->free_roaming_ligand ? mypars->ligandfile : NULL,
@@ -296,17 +306,19 @@ int setup(
 	}
 
 	// Filling myligand according to the pdbqt file
-	if (parse_liganddata(&myligand_init,
-	                     mygrid,
-	                     mypars->coeffs.AD4_coeff_vdW,
-	                     mypars->coeffs.AD4_coeff_hb,
-	                     mypars->nr_deriv_atypes,
-	                     mypars->deriv_atypes,
-	                     mypars->nr_mod_atype_pairs,
-	                     mypars->mod_atype_pairs) != 0)
+	int err_status = parse_liganddata(&myligand_init,
+	                                  mygrid,
+	                                  mypars->coeffs.AD4_coeff_vdW,
+	                                  mypars->coeffs.AD4_coeff_hb,
+	                                  mypars->nr_deriv_atypes,
+	                                  mypars->deriv_atypes,
+	                                  mypars->nr_mod_atype_pairs,
+	                                  mypars->mod_atype_pairs
+	                                 );
+	if(err_status != 0)
 	{
 		printf("\nError in parse_liganddata, stopped job.\n");
-		return 1;
+		return err_status;
 	}
 
 	if (mypars->contact_analysis){
@@ -327,18 +339,6 @@ int setup(
 				mypars->receptor_atoms[mypars->nr_receptor_atoms+i-myligand_init.true_ligand_atoms].donor=myligand_init.donor[i];
 			}
 		}
-	}
-
-	// Reading the grid files and storing values if not already done
-	int grid_status;
-#ifdef USE_PIPELINE
-	#pragma omp critical
-#endif
-	grid_status = get_gridvalues(mygrid);
-	if(grid_status!=0)
-	{
-		printf("\nError in get_gridvalues, stopped job.\n");
-		return 1;
 	}
 
 	//------------------------------------------------------------
@@ -421,6 +421,6 @@ int setup(
 			                   true);
 	}
 
-	return 0;
+	return (grid_status > 0) ? 2 : 0; // return error bit 1 if grid reading failed at first read but everything still ran through otherwise, 0 if no errors
 }
 
