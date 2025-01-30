@@ -207,10 +207,13 @@ int get_gridvalues(Gridinfo* mygrid)
 	unsigned int g1 = mygrid->size_xyz[0];
 	unsigned int g2 = g1*mygrid->size_xyz[1];
 
-	mygrid->error_count = 0;
+	mygrid->error_count         = 0;
+	mygrid->e_and_d_present     = 0;
+	unsigned int e_or_d_failure = 0;
 	for (t=0; t < mygrid->grid_mapping.size()/2; t++)
 	{
 		bool map_reading_failure = false;
+		bool e_or_d = (mygrid->grid_mapping[t][0]=='e') || (mygrid->grid_mapping[t][0]=='d');
 		ti = t + mygrid->grid_mapping.size()/2;
 		if(mygrid->fld_relative){ // this is always true (unless changed)
 			fn=mygrid->grid_file_path;
@@ -223,8 +226,8 @@ int get_gridvalues(Gridinfo* mygrid)
 		{
 			fp.clear();
 			printf("Error: Can't open grid map %s specified in fld file.\n", fn.c_str());
-			printf("       Continuing in case ligands don't use it.\n");
 			map_reading_failure = true;
+			e_or_d_failure += e_or_d;
 			mygrid->error_count++;
 			continue;
 		}
@@ -235,6 +238,7 @@ int get_gridvalues(Gridinfo* mygrid)
 				printf("Error: Failed reading preamble of grid map %s: ", fn.c_str());
 				if(fp.eof()) printf("file too small.\n"); else printf("I/O error\n");
 				map_reading_failure = true;
+				e_or_d_failure += e_or_d;
 				mygrid->error_count++;
 				break;
 			}
@@ -251,6 +255,7 @@ int get_gridvalues(Gridinfo* mygrid)
 						printf("Error: Failed reading grid map data points from %s: ", fn.c_str());
 						if(fp.eof()) printf("file too small.\n"); else printf("I/O error\n");
 						map_reading_failure = true;
+						e_or_d_failure += e_or_d;
 						goto grid_reading_finish;
 					}
 					*mypoi = map2float(line.c_str());
@@ -265,6 +270,7 @@ grid_reading_finish:
 		mygrid->map_present[t]  = !map_reading_failure;
 		mygrid->error_count    += map_reading_failure;
 	}
+	mygrid->e_and_d_present = (e_or_d_failure > 2 ) ? 0 : 2 - e_or_d_failure;
 	return mygrid->error_count;
 }
 

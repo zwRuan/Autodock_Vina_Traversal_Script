@@ -573,7 +573,7 @@ int main(int argc, char* argv[])
 	for(int i=0; i<error_grids.size(); i++){
 		mygrid = error_grids[i];
 		if(i==0) printf("\nWarning: The following grid maps could not be read (see above for more error messages):\n");
-		         printf("         * FLD file %s\n", mygrid->fld_name.c_str());
+		         printf("         * FLD file: %s\n", mygrid->fld_name.c_str());
 		for(int j=0; j<mygrid->map_present.size(); j++)
 			if(!mygrid->map_present[j])
 				printf("           - %s\n", mygrid->grid_mapping[j + mygrid->map_present.size()].c_str());

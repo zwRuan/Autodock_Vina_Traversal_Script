@@ -43,8 +43,8 @@ int preallocated_gridsize(FileList& filelist)
 		if(grid_idx<filelist.mygrids.size()){
 			// Filling mygrid according to the gpf file
 			if (get_gridinfo(filelist.fld_files[i].name.c_str(), &filelist.mygrids[grid_idx]) != 0){
-				printf("\n\nError in get_gridinfo, stopped job.");
-				return 1;
+				printf("\n\nError in get_gridinfo, cannot proceed.\n");
+				exit(-1);
 			}
 			int curr_size = 4*filelist.mygrids[grid_idx].size_xyz[0]*
 			                  filelist.mygrids[grid_idx].size_xyz[1]*
@@ -283,8 +283,8 @@ int setup(
 #endif
 	grid_status = get_gridinfo(mypars->fldfile, mygrid);
 	if (grid_status != 0){
-		printf("\nError in get_gridinfo, stopped job.\n");
-		return 1;
+		printf("\nError in get_gridinfo, cannot proceed.\n");
+		exit(-1);
 	}
 
 	// Reading the grid files and storing values if not already done
@@ -292,6 +292,38 @@ int setup(
 	#pragma omp critical
 #endif
 	grid_status = get_gridvalues(mygrid);
+	if(grid_status != 0){
+		bool stopit = false;
+		if(grid_status == mygrid->map_present.size()){
+			printf("\nError in get_gridvalues, cannot proceed:\n");
+			printf("    Reading of all grid maps failed.\n");
+			stopit = true;
+		} else{
+			if(mygrid->map_present.size() - grid_status <= mygrid->e_and_d_present){ // only e & d maps present => not atom type maps
+				if(!stopit) printf("\nError in get_gridvalues, cannot proceed:\n");
+				printf("    Reading of all atom type grid maps failed.\n");
+				stopit = true;
+			}
+			if(mygrid->e_and_d_present < 2){
+				if(!stopit) printf("\nError in get_gridvalues, cannot proceed:\n");
+				printf("    Failed to read ");
+				if(mygrid->e_and_d_present==0)
+					printf("e and d maps.\n");
+				else
+					printf("e or d map.\n");
+				stopit = true;
+			}
+		}
+		if(!stopit){
+			printf("\n-> Proceeding in case ligand");
+			if(filelist.used)
+				printf("s do not ");
+			else printf(" does not ");
+			printf("use the missing map");
+			if(grid_status>1) printf("s");
+			printf(".\n");
+		} else exit(-1);
+	}
 
 	// Filling the atom types field of myligand according to the grid types
 	if (init_liganddata(mypars->free_roaming_ligand ? mypars->ligandfile : NULL,
