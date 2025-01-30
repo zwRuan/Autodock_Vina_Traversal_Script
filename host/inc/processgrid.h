@@ -42,18 +42,21 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 // Struct containing all the important information coming from .gpf and .xyz files.
 typedef struct _Gridinfo
 {
-	std::string fld_name; // keep track of fld filename
-	std::string grid_file_path; // Added to store the full path of the grid file
-	std::string receptor_name;
-	std::string map_base_name;
-	int         size_xyz           [3];
-	double      spacing;
-	double      size_xyz_angstr    [3];
-	bool        fld_relative       = true; // By default (and until further notice) map file names are relative to the fld file
-	int         num_of_map_atypes;
-	double      origo_real_xyz     [3];
-	std::vector<std::string> grid_mapping; // stores the atom types and associated map filenames from the fld file
-	std::vector<float> grids;
+	std::string  fld_name; // keep track of fld filename
+	std::string  grid_file_path; // Added to store the full path of the grid file
+	std::string  receptor_name;
+	std::string  map_base_name;
+	int          size_xyz           [3];
+	double       spacing;
+	double       size_xyz_angstr    [3];
+	bool         fld_relative        = true;  // By default (and until further notice) map file names are relative to the fld file
+	int          num_of_map_atypes;
+	double       origo_real_xyz     [3];
+	unsigned int error_count         = 0;
+	unsigned int e_and_d_present     = 0;
+	std::vector<bool>        map_present;
+	std::vector<std::string> grid_mapping;  // stores the atom types and associated map filenames from the fld file
+	std::vector<float>       grids;
 } Gridinfo;
 
 struct Map

@@ -344,7 +344,8 @@ int main(int argc, char* argv[])
 #endif
 			start_timer(setup_timer);
 			// Load files, read inputs, prepare arrays for docking stage
-			if (setup(mygrid, &mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv) != 0) {
+			err[i_job] = setup(mygrid, &mypars, myligand_init, myxrayligand, filelist, i_job, argc, argv);
+			if (err[i_job] & 1) {
 				// If error encountered: Set error flag to 1; Add to count of finished jobs
 				// Keep in setup stage rather than moving to launch stage so a different job will be set up
 #ifdef USE_PIPELINE
@@ -362,7 +363,6 @@ int main(int argc, char* argv[])
 						fflush(stdout);
 					} else printf("\n");
 				}
-				err[i_job] = 1;
 				continue;
 			} else { // Successful setup
 #ifdef USE_PIPELINE
@@ -448,10 +448,10 @@ int main(int argc, char* argv[])
 				omp_unset_lock(&gpu_locks[dev_nr]);
 #endif
 				if (error_in_docking!=0){
-					// If error encountered: Set error flag to 1; Add to count of finished jobs
+					// If error encountered: Set error flag bit 3; Add to count of finished jobs
 					// Set back to setup stage rather than moving to processing stage so a different job will be set up
 					para_printf("\nError in docking_with_gpu, stopped Job #%d.\n",i_job+1);
-					err[i_job] = 1;
+					err[i_job] |= 4;
 					continue;
 				} else { // Successful run
 #ifdef USE_PIPELINE
@@ -547,18 +547,40 @@ int main(int argc, char* argv[])
 #endif
 	// Alert user to ligands that failed to complete
 	int n_errors=0;
+	Gridinfo*  mygrid = &initial_grid;
+	std::vector<Gridinfo*> error_grids;
 	for (int i=0; i<n_files; i++){
-		if (err[i]==1){
+		if((err[i] & 1) || (err[i] & 4)){ // job failed
 			if (filelist.used){
 				if (n_errors==0) printf("\nWarning: The following jobs were not successful:\n");
-				printf("         Job %d: %s\n", i, filelist.ligand_files[i].c_str());
+				printf("         Job #%d: %s", i+1, filelist.ligand_files[i].c_str());
+				if(err[i] & 2) printf(" (grid map error)");
+				if(err[i] & 4) printf(" (docking error)");
+				printf("\n");
 			} else {
-				printf("\nThe job was not successful.\n");
+				printf("\nThe job was not successful");
+				if(err[i] & 2) printf(" (grid map error)");
+				if(err[i] & 4) printf(" (docking error)");
+				printf(".\n");
 			}
 			n_errors++;
+		} else if(err[i] & 2){ // grid reading error but recoverable
+			if(filelist.used) mygrid = &filelist.mygrids[filelist.mypars[i].filelist_grid_idx];
+			error_grids.push_back(mygrid);
 		}
+
 	}
-	if (n_errors==0) printf("\nAll jobs ran without errors.\n");
+	for(int i=0; i<error_grids.size(); i++){
+		mygrid = error_grids[i];
+		if(i==0) printf("\nWarning: The following grid maps could not be read (see above for more error messages):\n");
+		         printf("         * FLD file: %s\n", mygrid->fld_name.c_str());
+		for(int j=0; j<mygrid->map_present.size(); j++)
+			if(!mygrid->map_present[j])
+				printf("           - %s\n", mygrid->grid_mapping[j + mygrid->map_present.size()].c_str());
+	}
+	if (n_errors==0){
+		printf("\nAll jobs (%d) ran without errors.\n", n_files);
+	} else if(filelist.used) printf("\n%d jobs ran without errors, %d failed.\n",n_files-n_errors,n_errors);
 	fflush(stdout);
 
 	return 0;

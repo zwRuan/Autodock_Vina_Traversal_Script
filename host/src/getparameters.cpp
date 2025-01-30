@@ -944,6 +944,8 @@ int get_filelist(
 					ligands.push_back(l.path().string());
 			// ligands may also contain receptor and/or flexres pdbqt - gets filtered out below
 			add_pdbqts = true;
+		} else if(std::filesystem::path(ligands[0]).extension() == ".pdbqt"){ // if parameter happens to be a single .pdbqt file, allow as ligand input
+			add_pdbqts = true;
 		} else filelist.filename = strdup(ligands[0].c_str());
 	}
 	if(add_pdbqts){
