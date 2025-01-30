@@ -79,6 +79,7 @@ int init_liganddata(
 	num_of_atypes = 0;
 	num_of_base_atypes = 0;
 	unsigned int atom_cnt = 0;
+	unsigned int lig_cnt  = 0;
 	for (unsigned int l=ls; l<lnr; l++)
 	{
 		if(l==0)
@@ -154,7 +155,19 @@ int init_liganddata(
 			}
 		}
 		// copying field to ligand and grid data
-		if(l==0) myligand->ligand_line_count = myligand->file_content.size();
+		if(l==0){
+			myligand->ligand_line_count = myligand->file_content.size();
+			lig_cnt = atom_cnt;
+			if(atom_cnt == 0){
+				printf("Error: No HETATM or ATOM lines in ligand data file %s.\n", ligfilename);
+				return 1;
+			}
+		} else{
+			if(atom_cnt - lig_cnt == 0){
+				printf("Error: No HETATM or ATOM lines in flexible residue data file %s.\n", ligfilename);
+				return 1;
+			}
+		}
 		myligand->num_of_atypes = num_of_atypes;
 		fp.close();
 	}
@@ -1180,19 +1193,29 @@ int parse_liganddata(
 			if(sscanf(line.c_str(),"%255s",tempstr) != 1) continue;
 			if ((strcmp(tempstr, "HETATM") == 0) || (strcmp(tempstr, "ATOM") == 0))
 			{
+				if(line.size() < 80){
+					printf("Error: HETATM or ATOM line is too short.\n");
+					return 1;
+				}
 				if (atom_counter > MAX_NUM_OF_ATOMS-1)
 				{
-					printf("Error: System consists of too many atoms.'\n");
+					printf("Error: System consists of too many atoms.\n");
 					printf("       Maximum number of atoms is %d.\n", MAX_NUM_OF_ATOMS);
 					return 1;
 				}
-				line.insert(54,1,' '); // add spaces to make reading coordinates easier
-				line.insert(46,1,' ');
-				line.insert(38,1,' ');
-				sscanf(&line.c_str()[30], "%lf %lf %lf", &(myligand->atom_idxyzq [atom_counter][1]), &(myligand->atom_idxyzq [atom_counter][2]), &(myligand->atom_idxyzq [atom_counter][3]));
+				line.insert(54,1,'|'); // add spaces to make reading coordinates easier
+				line.insert(46,1,'|');
+				line.insert(38,1,'|');
+				line.insert(30,1,'|');
+				if(sscanf(&line.c_str()[30], "|%lf|%lf|%lf|", &(myligand->atom_idxyzq [atom_counter][1]), &(myligand->atom_idxyzq [atom_counter][2]), &(myligand->atom_idxyzq [atom_counter][3])) != 3){
+					printf("Error: Empty atom coordinates.\n");
+					return 1;
+				}
 				// moved by the three spaces above
-				range_trim_to_char(line, 80, 83, tempstr); // reading atom type
-				sscanf(&line.c_str()[73], "%lf", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge (there's a space behind it)
+				range_trim_to_char(line, 81, (line.size() < 84 ? line.size() : 84), tempstr); // reading atom type
+				line.insert(70,1,'|');
+				line.insert(81,1,'|');
+				sscanf(&line.c_str()[70], "|%lf|", &(myligand->atom_idxyzq [atom_counter][4])); // reading charge (there's a space behind it)
 				int err_status = set_liganddata_typeid(myligand, mygrid, atom_counter, tempstr); // the function sets the type index
 				if (err_status != 0) return err_status;
 				if(tempstr[0]=='G'){ // G-type are ignored for inter calc unless there is a map specified (checked above)
