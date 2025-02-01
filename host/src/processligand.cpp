@@ -250,10 +250,11 @@ int set_liganddata_typeid(
 					printf("       Expecting a derived type for each CGx (x=0..9) atom type (i.e. --derivtype CG0,CG1=C).\n");
 				return 1;
 			}
-		}
-		if(!mygrid->map_present[myligand->atom_map_to_fgrids[atom_id]]){
-			printf("Error: Grid map reading failed for ligand atom type %s (see error message earlier).\n", typeof_new_atom);
-			return 3;
+		} else{
+			if(!mygrid->map_present[myligand->atom_map_to_fgrids[atom_id]]){
+				printf("Error: Grid map reading failed for ligand atom type %s (see error message earlier).\n", typeof_new_atom);
+				return 3;
+			}
 		}
 		return 0;
 	}
