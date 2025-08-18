@@ -1,191 +1,250 @@
-AutoDock-GPU: AutoDock for GPUs and other accelerators
-======================================================
+# AutoDock Vina 批量盲对接系统
 
-<img src="logo.png" width="200">
+一个基于AutoDock Vina的自动化分子对接流水线，支持m×n蛋白质-配体组合的批量盲对接。
 
-# About
+## 🚀 快速开始
 
-* AutoDock-GPU is developed by the [Forli lab](https://forlilab.org/) at Scripps Research.
-* OpenCL and Cuda accelerated version of AutoDock4.2.6. It leverages its embarrasingly parallelizable LGA by processing ligand-receptor poses in parallel over multiple compute units.
-* The OpenCL version was developed in collaboration with TU-Darmstadt and is able to target CPU, GPU, and FPGA architectures. This version itself was based on work done by Imre Pechan from evopro Innovation Kft.
-* The Cuda version was developed in collaboration with Nvidia to run AutoDock-GPU on the Oak Ridge National Laboratory's (ORNL) Summit, and it included a batched ligand pipeline developed by Aaron Scheinberg from Jubilee Development.
-* A SYCL version, which also supports recent Intel GPUs, is under development as a joint work of TUDa and Intel [Link here](https://github.com/emascarenhas/AutoDock-GPU).
+### 环境安装
 
-# Citation
+按顺序执行以下命令安装所需环境：
 
-Accelerating AutoDock4 with GPUs and Gradient-Based Local Search, [J. Chem. Theory Comput. 2021, 10.1021/acs.jctc.0c01006](https://doi.org/10.1021/acs.jctc.0c01006)
+```bash
+# 设置CUDA环境变量
+export CUDA_HOME=/usr/local/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH}
+export GPU_INCLUDE_PATH=$CUDA_HOME/include
+export GPU_LIBRARY_PATH=$CUDA_HOME/lib64
 
-See [more relevant papers](https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Publications)
+# 编译AutoDock-GPU（可选，本系统主要使用Vina）
+make clean
+make DEVICE=CUDA NUMWI=64 OVERLAP=ON
 
-# Features
+# 激活conda环境并安装Python依赖
+conda activate meeko311
+pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3
+pip install meson ninja meeko==0.6.1 rdkit scipy
 
-* Gradient-based local search methods (e.g. ADADELTA), as well as an improved version of Solis-Wets from AutoDock 4.
-* Cuda and OpenCL paths to support a wide variety of target platforms based on GPU as well as multicore CPU accelerators.
-* Observed speedups of up to 4x (quad-core CPU) and 56x (GPU) over the original serial AutoDock 4.2 (Solis-Wets) on CPU.
-* A batched ligand pipeline to run virtual screenings on the same receptor (both OpenCL and Cuda)
+# 安装AutoGrid（用于网格文件生成）
+cd AutoGrid
+conda install -c conda-forge autoconf automake libtool pkg-config tcsh
+meson setup --wipe builddir --prefix=$HOME/.local
+meson compile -C builddir
+meson install -C builddir
+export PATH="$HOME/.local/bin:$PATH"
 
-# Setup
-
-| Operating system                         | CPU                          | GPU                                            |
-|:----------------------------------------:|:----------------------------:|:----------------------------------------------:|
-|CentOS 6.7 & 6.8 / Ubuntu 14.04 & 16.04   | Intel SDK for OpenCL 2017    | OpenCL / CUDA >= 11                            |
-|macOS Catalina 10.15.1                    | Apple / Intel                | Apple / Intel Iris, Radeon Vega 64, Radeon VII |
-
-
-Other environments or configurations likely work as well, but are untested. AutoDock-GPU since commit 846dc2b requires a C++17-capable compiler, which in practice means GCC >= 9. This also means the minimum version supported for Cuda-compilation is Cuda 11, however, since all versions of Cuda also come with OpenCL older versions can still be used using the OpenCL code path (`DEVICE=OCLGPU`).
-
-# Compilation
-
-The first step is to set environmental variables `GPU_INCLUDE_PATH` and `GPU_LIBRARY_PATH`,
-as described here: https://github.com/ccsb-scripps/AutoDock-GPU/wiki/Guideline-for-users
-
-```zsh
-make DEVICE=<TYPE> NUMWI=<NWI>
+# 验证安装
+autogrid4 -h
 ```
 
-| Parameters | Description                  | Values                                             |
-|:----------:|:----------------------------:|:--------------------------------------------------:|
-| `<TYPE>`   | Accelerator chosen           | `CPU`, `GPU`, `CUDA`, `OCLGPU`, `OPENCL`           |
-| `<NWI>`    | work-group/thread block size | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128`, `256` |
+### 文件准备
 
-When `DEVICE=GPU` is chosen, the Makefile will automatically tests if it can compile Cuda succesfully. To override, use `DEVICE=CUDA` or `DEVICE=OCLGPU`. The cpu target is only supported using OpenCL. Furthermore, an OpenMP-enabled overlapped pipeline (for setup and processing) can be compiled with `OVERLAP=ON`.
-Hints: The best work-group size depends on the GPU and workload. Try `NUMWI=128` or `NUMWI=64` for modern cards with the example workloads. On macOS, use `NUMWI=1` for CPUs.
+按照以下目录结构准备输入文件：
 
-After successful compilation, the host binary **autodock_&lt;type&gt;_&lt;N&gt;wi** is placed under [bin](./bin).
-
-| Binary-name portion | Description                  | Values                                            |
-|:-------------------:|:----------------------------:|:-------------------------------------------------:|
-| **&lt;type&gt;**    | Accelerator chosen           | `cpu`, `gpu`                                      |
-| **&lt;N&gt;**       | work-group/thread block size | `1`, `2`, `4`, `8`,`16`, `32`, `64`, `128`, `256` |
-
-
-# Usage
-
-## Basic command
-```zsh
-./bin/autodock_<type>_<N>wi \
---ffile <protein>.maps.fld \
---lfile <ligand>.pdbqt \
---nrun <nruns>
+```
+项目根目录/
+├── proteins/          # 蛋白质PDB文件目录
+│   ├── egfr.pdb
+│   ├── protein2.pdb
+│   └── ...
+├── ligands/           # 配体PDB文件目录
+│   ├── Afatinib.pdb
+│   ├── ligand2.pdb
+│   └── ...
+├── scripts/           # 脚本目录
+│   ├── batch_docking.sh
+│   ├── generate_config.sh
+│   └── vina_blind_docking.sh
+├── configs/           # 配置文件（自动生成）
+└── results/           # 结果目录（自动生成）
 ```
 
-| Mandatory options|   | Description   | Value                     |
-|:----------------:|:-:|:-------------:|:-------------------------:|
-|--ffile           |-M |Protein file   |&lt;protein&gt;.maps.fld   |
-|--lfile           |-L |Ligand file    |&lt;ligand&gt;.pdbqt       |
+### 执行批量对接
 
-Both options can alternatively be provided in the contents of the files specified with `--filelist (-B)` (see below for format) and `--import_dpf (-I)` (AD4 dpf file format).
-
-## Example
-```zsh
-./bin/autodock_gpu_64wi \
---ffile ./input/1stp/derived/1stp_protein.maps.fld \
---lfile ./input/1stp/derived/1stp_ligand.pdbqt
-```
-By default the output log file is written in the current working folder. Examples of output logs can be found under [examples/output](examples/output/).
-
-## Supported arguments
-
-| Argument          |   | Description                                           | Default value    <tr><td colspan="4">**INPUT**</td></tr>
-|:------------------|:-:|:------------------------------------------------------|-----------------:|
-|--lfile            |-L | Ligand pdbqt file                                     | no default       |
-|--ffile            |-M | Grid map files descriptor fld file                    | no default       |
-|--flexres          |-F | Flexible residue pdbqt file                           | no default       |
-|--filelist         |-B | Batch file                                            | no default       |
-|--import_dpf       |-I | Import AD4-type dpf input file (only partial support) | no default       |
-|--xraylfile        |-R | reference ligand file for RMSD analysis               | ligand file      <tr><td colspan="4">**CONVERSION**</td></tr>
-|--xml2dlg          |-X | One (or many) AD-GPU xml file(s) to convert to dlg(s) | no default       <tr><td colspan="4">**OUTPUT**</td></tr>
-|--resnam           |-N | Name for docking output log                           | ligand basename  |
-|--contact_analysis |-C | Perform distance-based analysis (description below)   | 0 (no)           |
-|--xmloutput        |-x | Specify if xml output format is wanted                | 1 (yes)          |
-|--dlgoutput        |-d | Control if dlg output is created                      | 1 (yes)          |
-|--dlg2stdout       |-2 | Write dlg file output to stdout (if not OVERLAP=ON)   | 0 (no)           |
-|--rlige            |   | Print reference ligand energies                       | 0 (no)           |
-|--gfpop            |   | Output all poses from all populations of each LGA run | 0 (no)           |
-|--npdb             |   | # pose pdbqt files from populations of each LGA run   | 0                |
-|--gbest            |   | Output single best pose as pdbqt file                 | 0 (no)           |
-|--clustering       |   | Output clustering analysis in dlg and/or xml file     | 1 (yes)          |
-|--hsym             |   | Handle symmetry in RMSD calc.                         | 1 (yes)          |
-|--rmstol           |   | RMSD clustering tolerance                             | 2 (Å)            <tr><td colspan="4">**SETUP**</td></tr>
-|--devnum           |-D | OpenCL/Cuda device number (counting starts at 1)      | 1                |
-|--loadxml          |-c | Load initial population from xml results file         | no default       |
-|--seed             |-s | Random number seeds (up to three comma-sep. integers) | time, process id <tr><td colspan="4">**SEARCH**</td></tr>
-|--heuristics       |-H | Ligand-based automatic search method and # evals      | 1 (yes)          |
-|--heurmax          |-E | Asymptotic heuristics # evals limit (smooth limit)    | 12000000         |
-|--autostop         |-A | Automatic stopping criterion based on convergence     | 1 (yes)          |
-|--asfreq           |-a | AutoStop testing frequency (in # of generations)      | 5                |
-|--nrun             |-n | # LGA runs                                            | 20               |
-|--nev              |-e | # Score evaluations (max.) per LGA run                | 2500000          |
-|--ngen             |-g | # Generations (max.) per LGA run                      | 42000            |
-|--lsmet            |-l | Local-search method                                   | ad (ADADELTA)    |
-|--lsit             |-i | # Local-search iterations (max.)                      | 300              |
-|--psize            |-p | Population size                                       | 150              |
-|--mrat             |   | Mutation rate                                         | 2   (%)          |
-|--crat             |   | Crossover rate                                        | 80  (%)          |
-|--lsrat            |   | Local-search rate                                     | 100 (%)          |
-|--trat             |   | Tournament (selection) rate                           | 60  (%)          |
-|--dmov             |   | Maximum LGA movement delta                            | 6 (Å)            |
-|--dang             |   | Maximum LGA angle delta                               | 90 (°)           |
-|--rholb            |   | Solis-Wets lower bound of rho parameter               | 0.01             |
-|--lsmov            |   | Solis-Wets movement delta                             | 2 (Å)            |
-|--lsang            |   | Solis-Wets angle delta                                | 75 (°)           |
-|--cslim            |   | Solis-Wets cons. success/failure limit to adjust rho  | 4                |
-|--stopstd          |   | AutoStop energy standard deviation tolerance          | 0.15 (kcal/mol)  |
-|--initswgens       |   | Initial # generations of Solis-Wets instead of -lsmet | 0 (no)           <tr><td colspan="4">**SCORING**</td></tr>
-|--derivtype        |-T | Derivative atom types (e.g. C1,C2,C3=C/S4=S/H5=HD)    | no default       |
-|--modpair          |-P | Modify vdW pair params (e.g. C1:S4,1.60,1.200,13,7)   | no default       |
-|--ubmod            |-u | Unbound model: 0 (bound), 1 (extended), 2 (compact)   | 0 (same as bound)|
-|--smooth           |   | Smoothing parameter for vdW interactions              | 0.5 (Å)          |
-|--elecmindist      |   | Min. electrostatic potential distance (w/ dpf: 0.5 Å) | 0.01 (Å)         |
-|--modqp            |   | Use modified QASP from VirtualDrug or AD4 original    | 0 (no, use AD4)  |
-
-Autostop is ON by default since v1.4. The collective distribution of scores among all LGA populations
-is tested for convergence every `<asfreq>` generations, and docking is stopped if the top-scored poses
-exhibit a small variance. This avoids wasting computation after the best docking solutions have been found.
-The heuristics set the number of evaluations at a generously large number. They are a function
-of the number of rotatable bonds. It prevents unreasonably long dockings in cases where autostop fails
-to detect convergence.
-In our experience `--heuristics 1` and `--autostop 1` allow sufficient score evaluations for searching
-the energy landscape accurately. For molecules with many rotatable bonds (e.g. about 15 or more)
-it may be advisable to increase `--heurmax`.
-
-When the heuristics is used and `--nev <max evals>` is provided as a command line argument it provides the (hard) upper # of evals limit to the value the heuristics suggests. Conversely, `--heurmax` is the rolling-off type asymptotic limit to the heuristic's # of evals formula and should only be changed with caution.
-The batch file is a text file containing the parameters to `--ffile`, `--lfile`, and `--resnam` each on an individual line. It is possible to only use one line to specify the Protein grid map file which means it will be used for all ligands. Here is an example:
-```
-./receptor1.maps.fld
-./ligand1.pdbqt
-Ligand 1
-./receptor2.maps.fld
-./ligand2.pdbqt
-Ligand 2
-./receptor3.maps.fld
-./ligand3.pdbqt
-Ligand 3
+```bash
+bash scripts/batch_docking.sh
 ```
 
-When the distance-based analysis is used (`--contact_analysis 1` or `--contact_analysis <R_cutoff>,<H_cutoff>,<V_cutoff>`),
-the ligand poses of a given run (either after a docking run or even when `--xml2dlg <xml file(s)>` is used) are analyzed in
-terms of their individual atom distances to the target protein with individual cutoffs for:
-* `R`eactive (default: 2.1 Å): These are interactions between modified atom types numbered 1, 4, or 7 (i.e. between C1 and S4)
-* `H`ydrogen bonds (default: 3.7 Å): Interactions between Hydrogen-bond donor (closest N,O,S to an HD, or HD otherwise) and acceptor atom types (NA,NS,OA,OS,SA atom types).
-* `V`an der Waals (default: 4.0  Å): All other interactions not fulfilling the above criteria.
+## 📁 输出结构
 
-The contact analysis results for each pose are output in dlg lines starting with `ANALYSIS:` and/or in `<contact_analysis>` blocks in xml file output.
+执行完成后，结果将按以下结构组织：
 
-# Documentation
+```
+results/
+├── egfr_Afatinib/           # 蛋白质-配体组合目录
+│   ├── logs/
+│   │   └── vina_blind_docking.log    # Vina运行日志
+│   ├── egfr.pdbqt              # 转换后的蛋白质文件
+│   ├── Afatinib.pdbqt          # 转换后的配体文件
+│   └── Afatinib_out.pdbqt      # 对接结果文件
+├── protein2_ligand2/        # 其他组合...
+└── batch_report.txt         # 批量结果汇总报告
+```
 
-Visit the project [Wiki](https://github.com/ccsb-scripps/AutoDock-GPU/wiki).
+## 🔧 核心脚本功能详解
 
-AutoDock-GPU requires [Meeko](https://github.com/forlilab/meeko) for
-preparing the receptor and ligands, and
-[autogrid](https://github.com/ccsb-scripps/autogrid) for calculating the
-affinity grid maps, including the file ending in `.maps.fld` that is passed
-to option `-M` or `--ffile`.
+### 1. `scripts/generate_config.sh` - 配置文件生成器
 
-Visit [the Meeko documentation](https://meeko.readthedocs.io) for more
-information and tutorials covering AutoDock-GPU usage.
+**功能**：为每个蛋白质-配体对自动生成盲对接配置文件
 
-# Contributing
+**工作原理**：
+1. **蛋白质结构分析**：
+   ```python
+   # 读取PDB文件中的所有ATOM记录
+   coords = []
+   for line in pdb_file:
+       if line.startswith('ATOM'):
+           x, y, z = extract_coordinates(line)
+           coords.append([x, y, z])
+   ```
 
-* If you have a bug report, please check the [open issues](https://github.com/ccsb-scripps/AutoDock-GPU/issues), and if it has not been reported yet, open a new one.
-* If you want to add a new feature, pull/fork the code and submit a [pull request](https://github.com/ccsb-scripps/AutoDock-GPU/pulls).
+2. **几何中心计算**：
+   ```python
+   # 计算蛋白质的几何中心作为搜索中心
+   center = np.mean(coords, axis=0)
+   ```
+
+3. **搜索盒子尺寸确定**：
+   ```python
+   # 计算蛋白质边界
+   min_coords = np.min(coords, axis=0)
+   max_coords = np.max(coords, axis=0)
+   dimensions = max_coords - min_coords
+   
+   # 盲对接盒子 = 蛋白质尺寸 + 20Å buffer
+   box_size = dimensions + 20.0
+   ```
+
+4. **配置文件生成**：
+   ```bash
+   # 生成标准Vina配置文件
+   cat > config.txt << EOF
+   receptor = protein.pdbqt
+   ligand = ligand.pdbqt
+   center_x = -10.123
+   center_y = 6.595  
+   center_z = 2.264
+   size_x = 154.5
+   size_y = 139.8
+   size_z = 129.7
+   exhaustiveness = 24
+   num_modes = 1
+   EOF
+   ```
+
+**关键特性**：
+- ✅ **真正的盲对接**：搜索盒子完全包裹蛋白质表面
+- ✅ **自适应尺寸**：根据蛋白质大小自动调整搜索空间
+- ✅ **高精度搜索**：详尽度设置为24，确保全面搜索
+
+### 2. `scripts/vina_blind_docking.sh` - Vina对接执行器
+
+**功能**：执行单个蛋白质-配体对的完整对接流程
+
+**工作流程**：
+
+1. **文件格式转换**：
+   ```bash
+   # PDB → PDBQT 转换（AutoDockTools_py3）
+   prepare_receptor4 -r protein.pdb -o protein.pdbqt \
+     -A checkhydrogens -U nphs_lps_waters_nonstdres
+   
+   prepare_ligand4 -l ligand.pdb -o ligand.pdbqt \
+     -A bonds_hydrogens
+   ```
+
+2. **配置参数解析**：
+   ```bash
+   # 从配置文件读取对接参数
+   CENTER_X=$(grep "center_x" config.txt | sed 's/.*=\s*//')
+   SIZE_X=$(grep "size_x" config.txt | sed 's/.*=\s*//')
+   # ... 其他参数
+   ```
+
+3. **Vina对接执行**：
+   ```bash
+   vina \
+     --receptor protein.pdbqt \
+     --ligand ligand.pdbqt \
+     --center_x $CENTER_X --center_y $CENTER_Y --center_z $CENTER_Z \
+     --size_x $SIZE_X --size_y $SIZE_Y --size_z $SIZE_Z \
+     --out result.pdbqt \
+     --exhaustiveness 24 \
+     --num_modes 1 \
+     --cpu 0
+   ```
+
+4. **结果分析**：
+   ```bash
+   # 解析PDBQT结果文件，提取结合能量
+   grep "REMARK VINA RESULT" result.pdbqt | \
+   while read line; do
+       energy=$(echo "$line" | awk '{print $4}')
+       rmsd=$(echo "$line" | awk '{print $5}')
+       echo "结合能量: $energy kcal/mol, RMSD: $rmsd"
+   done
+   ```
+
+**容错机制**：
+- 多种PDB转换策略，确保格式兼容性
+- 自动Vina路径检测
+- 详细的错误日志记录
+
+### 3. `scripts/batch_docking.sh` - 批量对接主控制器
+
+**功能**：协调整个批量对接流程
+
+**执行逻辑**：
+1. **环境检查**：验证所有必要工具和文件
+2. **文件扫描**：自动发现proteins/和ligands/目录中的PDB文件
+3. **任务生成**：创建m×n个蛋白质-配体组合任务
+4. **顺序执行**：
+   ```bash
+   for protein in proteins/*.pdb; do
+       for ligand in ligands/*.pdb; do
+           # 生成配置文件
+           generate_config.sh "$protein" "$ligand" -o "config.txt"
+           
+           # 执行对接
+           vina_blind_docking.sh "$protein" "$ligand" "config.txt" "work_dir"
+       done
+   done
+   ```
+5. **结果汇总**：生成批量报告和统计信息
+
+## 📊 结果解读
+
+### 对接结果文件 (`*_out.pdbqt`)
+- **REMARK VINA RESULT**: 包含结合能量和RMSD信息
+- **MODEL**: 不同的结合构象
+- **ATOM/HETATM**: 配体在结合位点的三维坐标
+
+### 关键指标
+- **结合能量**: 数值越负，结合越强（单位：kcal/mol）
+- **RMSD**: 构象相似性指标（单位：Å）
+- **搜索空间**: 盲对接覆盖的体积（通常>1,000,000 Å³）
+
+### 批量报告 (`batch_report.txt`)
+包含所有组合的汇总信息：
+- 成功/失败统计
+- 最佳结合能量排序
+- 执行时间统计
+
+
+
+---
+
+## 📚 参考内容
+
+本系统的开发参考了以下优秀的工作，在此表示感谢：
+
+- **AutoDock Vina**: Trott, O. & Olson, A. J. AutoDock Vina: improving the speed and accuracy of docking. *J. Comput. Chem.* **31**, 455-461 (2010).
+- **AutoDockTools**: Morris, G. M. et al. AutoDock4 and AutoDockTools4. *J. Comput. Chem.* **30**, 2785-2791 (2009).
+- **AutoDock-GPU**: https://github.com/ccsb-scripps/AutoDock-GPU  
+  提供了高性能GPU加速的分子对接方案
+- **AutoDockTools_py3**: https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3  
+  现代化的Python 3兼容版本AutoDockTools
+- **分子对接教程**: https://zhuanlan.zhihu.com/p/696041695  
+  详细的AutoDock Vina使用指南和最佳实践
+- **药物设计方法**: https://zhuanlan.zhihu.com/p/27108643502  
+  计算药物设计的理论基础和实践方法

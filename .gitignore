@@ -1,3 +1,17 @@
+proteins
+ligands
+configs
+results
+
+
+
+
+
+
+
+
+
+
 # AutoDock-GPU specific files
 initpop.txt
 *.dlg
