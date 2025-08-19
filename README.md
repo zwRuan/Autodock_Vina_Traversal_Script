@@ -35,6 +35,9 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # 验证安装
 autogrid4 -h
+
+# 安装Autodock Vina
+bash install_vina_script.sh
 ```
 
 ### 文件准备
