@@ -21,6 +21,7 @@ make clean
 make DEVICE=CUDA NUMWI=64 OVERLAP=ON
 
 # 激活conda环境并安装Python依赖
+conda create -y -n meeko311 -c conda-forge python=3.11 rdkit
 conda activate meeko311
 pip install git+https://github.com/Valdes-Tresanco-MS/AutoDockTools_py3
 pip install meson ninja meeko==0.6.1 rdkit scipy
