@@ -16,7 +16,7 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:${LD_LIBRARY_PATH}
 export GPU_INCLUDE_PATH=$CUDA_HOME/include
 export GPU_LIBRARY_PATH=$CUDA_HOME/lib64
 
-# 编译AutoDock-GPU（可选，本系统主要使用Vina）
+# 编译AutoDock-GPU
 make clean
 make DEVICE=CUDA NUMWI=64 OVERLAP=ON
 
@@ -84,7 +84,7 @@ results/
 └── batch_report.txt         # 批量结果汇总报告
 ```
 
-## 🔧 核心脚本功能详解
+## 🔧 核心脚本功能详解 (讲解各个脚本功能，不影响使用)
 
 ### 1. `scripts/generate_config.sh` - 配置文件生成器
 
